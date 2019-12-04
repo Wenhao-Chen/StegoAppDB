@@ -1,0 +1,5 @@
+Landroid/graphics/drawable/Drawable;,Landroid/graphics/drawable/BitmapDrawable;,true
+Ljava/lang/Object;,Ljava/lang/String;,true
+Ljava/net/HttpURLConnection;,Ljavax/net/ssl/HttpsURLConnection;,true
+Landroid/view/View;,Landroid/widget/LinearLayout;,true
+Ljava/net/URLConnection;,Ljava/net/HttpURLConnection;,true

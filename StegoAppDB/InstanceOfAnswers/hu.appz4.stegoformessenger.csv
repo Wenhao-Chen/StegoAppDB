@@ -1,0 +1,6 @@
+Ljava/lang/Object;,Ljava/lang/Integer;,true
+Lorg/json/JSONArray;,Lorg/json/JSONArray;,true
+Ljava/io/BufferedOutputStream;,Lcom/facebook/aa;,true
+Ljava/util/zip/GZIPOutputStream;,Lcom/facebook/aa;,true
+Ljava/io/OutputStream;,Lcom/facebook/aa;,true
+Ljava/net/HttpURLConnection;,Ljava/net/HttpURLConnection;,true
