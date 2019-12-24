@@ -2,7 +2,7 @@ package apex.symbolic.solver.api;
 
 import java.util.List;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
 import apex.symbolic.MethodContext;
@@ -51,6 +51,11 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 		}
 		else if (invokeSig.equals("Ljava/lang/Integer;->intValue()I"))
 		{
+			if (params.get(0)==null || params.get(0).getObjID()==null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXObject obj = vm.heap.get(params.get(0).getObjID());
 			if (obj.primitiveExpr != null)
 				vm.recentResult = obj.primitiveExpr;

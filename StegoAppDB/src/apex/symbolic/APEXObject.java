@@ -11,7 +11,6 @@ import java.util.TreeMap;
 
 import util.P;
 
-@SuppressWarnings("unused")
 public class APEXObject{
 
 	public String objID;
@@ -27,6 +26,7 @@ public class APEXObject{
 	public Expression[][] concreteBitmap;
 	public List<BitmapAccess> bitmapHistory = new ArrayList<>();
 	public static class BitmapAccess {
+		public String stmt;
 		public String action;
 		public Expression copied_from;
 		public Expression canvas_draw_bitmap, top, left, bottom, right;
@@ -34,15 +34,17 @@ public class APEXObject{
 		public String sig;
 		public List<Expression> params = new ArrayList<>();
 		public Expression x, y, c;
-		public BitmapAccess(String action, String sig, List<Expression> p) {
+		public BitmapAccess(String stmtID, String action, String sig, List<Expression> p) {
+			this.stmt = stmtID;
 			this.action = action;
 			this.sig = sig;
 			for (Expression pp : p)
 				params.add(pp.clone());
 		}
-		public BitmapAccess() {}
-		public BitmapAccess(String action, Expression x, Expression y, Expression c)
+		public BitmapAccess(String stmtID) {stmt = stmtID;}
+		public BitmapAccess(String stmtID, String action, Expression x, Expression y, Expression c)
 		{
+			this.stmt = stmtID;
 			this.action = action;
 			this.x = x.clone();
 			this.y = y.clone();

@@ -1,7 +1,9 @@
 package apex.graphs;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,9 +12,9 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import util.Graphviz;
 
 public class CallGraph {
@@ -22,7 +24,7 @@ public class CallGraph {
 	private boolean whiteListed;
 
 	public static class Vertex {
-		APEXMethod m;
+		public APEXMethod m;
 		int index;
 		public int in_degree = 0, out_degree = 0;
 		Vertex(APEXMethod mm, int i) {m = mm; index = i;}
@@ -40,6 +42,64 @@ public class CallGraph {
 	public CallGraph(APEXApp app)
 	{
 		this.app = app;
+	}
+	
+	// return the sub graph that contains method "sig"
+	public String getDotGraph(String sig)
+	{
+		return getDotGraph(new HashSet<>(Arrays.asList(sig)));
+	}
+	
+	// return the subgraph that contains all methods in set "sigs"
+	public String getDotGraph(Set<String> sigs)
+	{
+		if (vertices==null || out_edges==null)
+			updateMethodCallGraph();
+		// first find set S that contains all the methods that are connected to methods in "sigs"
+		// then write dotgraphs with V and E that are related to methods in S
+		
+		Set<Vertex> S = new HashSet<>();
+		for (String sig : sigs)
+			dfs(S, vertices.get(sig));
+		
+		String text = "digraph G {\n";
+		text += "\tcompound=true;\n";
+		text += "\tlabelloc=\"t\";\n";
+		text += "\tlabel = \"Partial Call Graph for "+app.packageName+" with methods:";
+		for (String sig : sigs)
+			text += "\\l    "+sig;
+		text += "\";\n";
+		text += "\tnode [shape=box];\n";
+		
+		for (Vertex v : S)
+		{
+			if (sigs.contains(v.m.signature))
+				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.signature, "red", "red", null, (String[])null)+"\n";
+			else
+				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.signature)+"\n";
+		}
+			
+		
+		for (Vertex src : S)
+		for (Vertex dst : out_edges.getOrDefault(src, new HashSet<>()))
+		{
+			text += "\t"+src.index+" -> "+dst.index+" [label=\"\"];\n";
+		}
+		
+		text += "}";
+		
+		return text;
+	}
+	
+	private void dfs(Set<Vertex> S, Vertex v)
+	{
+		if (S.contains(v))
+			return;
+		S.add(v);
+		for (Vertex v1 : out_edges.getOrDefault(v, new HashSet<>()))
+			dfs(S, v1);
+		for (Vertex v1 : in_edges.getOrDefault(v, new HashSet<>()))
+			dfs(S, v1);
 	}
 	
 	public String getDotGraph()
@@ -76,7 +136,7 @@ public class CallGraph {
 		updateMethodCallGraph(null);
 	}
 	
-	public int countIslands()
+	public List<Set<Vertex>> countIslands()
 	{
 		DefaultDirectedGraph<Vertex, DefaultEdge> jgrapht = new DefaultDirectedGraph<Vertex, DefaultEdge>(DefaultEdge.class);
 		
@@ -92,31 +152,9 @@ public class CallGraph {
 		}
 		
 		ConnectivityInspector<Vertex, DefaultEdge> ci = new ConnectivityInspector<>(jgrapht);
-		return ci.connectedSets().size();
+		return ci.connectedSets();
 	}
 	
-	private void dfs(Set<String> visited, String tovisit)
-	{
-		visited.add(tovisit);
-		Vertex v = vertices.get(tovisit);
-		if (out_edges.containsKey(v))
-		{
-			Set<Vertex> out = out_edges.get(v);
-			for (Vertex vv : out)
-			{
-				if (!visited.contains(vv))
-					dfs(visited, vv.m.signature);
-			}
-		}
-		if (in_edges.containsKey(v))
-		{
-			for (Vertex vv : in_edges.get(v))
-			{
-				if (!visited.contains(vv))
-					dfs(visited, vv.m.signature);
-			}
-		}
-	}
 	
 	public void updateMethodCallGraph(Set<String> whiteList)
 	{

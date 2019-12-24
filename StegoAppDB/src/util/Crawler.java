@@ -95,7 +95,7 @@ public class Crawler {
 		return new String(arr);
 	}
 	
-	static final String chrome = "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
+	public static final String chrome = "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
 	
 	static List<String> searchFromPlayStore(String keyword)
 	{

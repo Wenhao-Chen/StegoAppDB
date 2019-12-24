@@ -190,14 +190,13 @@ public class P {
 	
 	public static void pf(String format, Object... args)
 	{
-		p(String.format(format, args));
+		System.out.print(String.format(format, args));
 	}
 	
 	public static void p(Iterable<? extends CharSequence> strings)
 	{
 		for (CharSequence s: strings)
 			p(s);
-		
 	}
 
 	

@@ -6,9 +6,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import ui.ProgressUI;
 import util.Apktool;
 import util.F;

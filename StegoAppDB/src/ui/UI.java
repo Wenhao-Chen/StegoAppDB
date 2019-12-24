@@ -46,11 +46,10 @@ public class UI {
         final int top = Toolkit.getDefaultToolkit().getScreenInsets(config).top;
         final int bottom = Toolkit.getDefaultToolkit().getScreenInsets(config).bottom;
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        final int width = screenSize.width - left - right;
-        final int height = screenSize.height - top - bottom;
+        final int width = screenSize.width - left - right-20;
+        final int height = screenSize.height - top - bottom-200;
         frame.setMinimumSize(new Dimension(width, height));
-        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        
+        frame.setLocation(screenSize.width + 10, 100);
 		frame.add(panel);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);

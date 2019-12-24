@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import app_analysis.APISignatures;
 import ui.ProgressUI;
 import util.F;

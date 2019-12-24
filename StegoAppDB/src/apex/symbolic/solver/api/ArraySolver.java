@@ -2,7 +2,7 @@ package apex.symbolic.solver.api;
 
 import java.util.List;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXArray;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
@@ -68,6 +68,11 @@ public class ArraySolver extends SolverInterface{
 		}
 		else if (invokeSig.equals("Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;"))
 		{
+			if (params.get(0).getObjID()==null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXArray arr = (APEXArray) vm.heap.get(params.get(0).getObjID());
 			APEXObject buffer = vm.createNewObject("Ljava/nio/ByteBuffer;", "ByteBuffer.wrap([B)", s.getUniqueID(), false);
 			buffer.bufferLength = arr.length.clone();
@@ -99,7 +104,7 @@ public class ArraySolver extends SolverInterface{
 					Expression readIndex = Arithmetic.add(srcPos, delta, "I");
 					Expression writeIndex = Arithmetic.add(dstPos, delta, "I");
 					Expression get = src.aget(readIndex, vm, s);
-					dst.aput(writeIndex, get, vm);
+					dst.aput(s, writeIndex, get, vm);
 				}
 			}
 		}

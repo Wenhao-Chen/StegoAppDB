@@ -3,8 +3,8 @@ package apex.symbolic.solver.api;
 import java.util.Arrays;
 import java.util.List;
 
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
 import apex.symbolic.MethodContext;
@@ -43,7 +43,11 @@ public class ThreadSolver extends SolverInterface{
 		}
 		else if (invokeSig.endsWith("->runOnUiThread(Ljava/lang/Runnable;)V"))
 		{
-			Expression runnableRef = params.get(1);
+			// this signature pattern seems to cover a lot of different APIs
+			// including some 3rd party ones.
+			// To get the runnable object, read from the last of the list
+			// because some of such APIs are static methods
+			Expression runnableRef = params.get(params.size()-1);
 			String methodSig = runnableRef.type+"->run()V";
 			APEXMethod nestedM = vm.app.getNonLibraryMethod(methodSig);
 			if (nestedM != null)

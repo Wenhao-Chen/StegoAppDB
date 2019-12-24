@@ -8,7 +8,6 @@ import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.Random;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -28,6 +27,11 @@ public class UIWrappers {
 		public static int defaultSize = 20;
 		public static Color defaultBackgroundColor = Color.YELLOW;
 		public static int alignment = SwingConstants.CENTER;
+		
+		public LargeLabel()
+		{
+			this("label");
+		}
 		
 		public LargeLabel(String text)
 		{

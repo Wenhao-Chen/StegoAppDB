@@ -9,8 +9,8 @@ import java.util.Queue;
 import java.util.Set;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.VM;
 import app_analysis.APISignatures;
 import app_analysis.Dirs;

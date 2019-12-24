@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import apex.symbolic.solver.Arithmetic;
 import util.Dalvik;
 import util.Dirs;
 import util.Graphviz;
@@ -154,9 +155,18 @@ public class Expression implements Serializable{
 			}
 		}
 		text += "}";
-
 		
 		Graphviz.makeDotGraph(text, name+(trimmed?"_timmed":"_full"), dir, true);
+	}
+	
+	public String toStringRaw()
+	{
+		StringBuilder res = new StringBuilder();
+		res.append('(').append(root);
+		for (Expression child : children)
+			res.append(child.toStringRaw());
+		res.append(')');
+		return res.toString();
 	}
 
 	public String toString()
@@ -164,7 +174,20 @@ public class Expression implements Serializable{
 		if (children.size()==0)
 			return root;
 		else if (isLiteral())
+		{
+			if (isSymbolic)
+				return children.get(0).root;
+			if (type.contentEquals("I"))
+				return Arithmetic.parseInt(children.get(0).root)+"";
+			if (type.contentEquals("J"))
+				return Arithmetic.parseLong(children.get(0).root)+"";
+			if (type.contentEquals("F"))
+				return Arithmetic.parseFloat(children.get(0).root)+"";
+			if (type.contentEquals("D"))
+				return Arithmetic.parseDouble(children.get(0).root)+"";
 			return children.get(0).root;
+		}
+			
 		else if (isReference())
 			return children.get(0).root;
 		else if (isReturnValue())

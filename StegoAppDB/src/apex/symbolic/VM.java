@@ -14,10 +14,10 @@ import java.util.Stack;
 import java.util.TreeMap;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXField;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXField;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject.BitmapAccess;
 import apex.symbolic.solver.Arithmetic;
 import apex.symbolic.solver.Condition;
@@ -162,6 +162,7 @@ public class VM {
 			MethodContext mc = methodStack.peek();
 			if (mc.stmtIndex >= mc.m.statements.size())
 			{
+				P.p("[stmt index out of bound], popping...");
 				methodStack.pop();
 				continue;
 			}
@@ -180,8 +181,10 @@ public class VM {
 	
 	public void executeStatement(APEXStatement s)
 	{
+		if (printDebug && s.index==0)
+			P.p("  [Method Start] "+s.m.signature);
 		if (printDebug)
-			P.p("  executing " + s.getUniqueID());
+			P.p("  [STMT] " + s.getUniqueID());
 		if (s.block.statements.get(0)==s)
 		{
 			String label = s.m.signature+s.block.getLabelString();
@@ -197,21 +200,6 @@ public class VM {
 		MethodContext mc = methodStack.peek();
 		String op = s.getOpcode();
 		String[] args = s.getArguments();
-/*		if (mc.m.signature.equals("Lcom/steganocipher/stegano/EncodeActivity;->embedd()Landroid/net/Uri;"))
-		{
-			switch (s.index)
-			{
-			case 14:
-			case 24:
-			case 27: 
-			case 31:
-			case 34:
-			case 36:
-				P.p("index "+s.index);
-				P.pause();
-				break;
-			}
-		}*/
 		switch (op)
 		{
 		case "nop"                     : 
@@ -247,7 +235,6 @@ public class VM {
 			mc.assign(args[0], recentResult);
 			break;
 		case "move-exception"          : 	// vAA
-			//NOTE: ignoring move-exception for now
 			break;
 		case "return-void"             : 
 			methodStack.pop();
@@ -347,7 +334,13 @@ public class VM {
 			String[] eleRegs = s.getParamRegisters();
 			APEXArray arr = createNewArray(args[1], "array", Expression.newLiteral("I", eleRegs.length+""), s.getUniqueID()+" "+s.smali);
 			for (int i = 0; i < eleRegs.length; i++)
-				arr.aput(i, mc.read(eleRegs[i]), this);
+			{
+				Expression exp = mc.read(eleRegs[i]);
+				arr.aput(s, i, exp, this);
+				if (Dalvik.isWideType(exp.type))
+					i++;
+			}
+				
 			recentResult = arr.reference;
 			break;
 		}
@@ -366,7 +359,7 @@ public class VM {
 					val = val.substring(val.indexOf("#")+1).trim();
 				else if (val.endsWith("t"))
 					val = val.substring(0, val.length()-1);
-				arr.aput(index++, Expression.newLiteral(eleType, val), this);
+				arr.aput(s, index++, Expression.newLiteral(eleType, val), this);
 			}
 			break;
 		}
@@ -483,13 +476,13 @@ public class VM {
 				String jump = "<";
 				Expression jumpCond = Expression.newCondition(jump, mc.read(args[0]), mc.read(args[1]));
 				Expression flowCond = Expression.newCondition(flow, mc.read(args[0]), mc.read(args[1]));
-/*				if (pathCondition.contains(flowCond)) {
-					P.p("already did this...");
+				if (pathCondition.contains(flowCond)) {
+					//P.p("already did this...");
 				}
 				else if (pathCondition.contains(jumpCond))
 					mc.stmtIndex = jumpIndex;
-				else*/
-				this.SymbolicPathing(mc, s, flow, jump, mc.read(args[0]), mc.read(args[1]), jumpIndex);
+				else
+					this.SymbolicPathing(mc, s, flow, jump, mc.read(args[0]), mc.read(args[1]), jumpIndex);
 			}
 			else if (cmp == Condition.Less)
 				mc.stmtIndex = jumpIndex;
@@ -513,11 +506,6 @@ public class VM {
 			}
 			else if (cmp != Condition.Less)
 				mc.stmtIndex = jumpIndex;
-			if (s.smali.equals("if-ge v11, v0, :cond_7"))
-			{
-				P.p("vA = "+mc.read(args[0]));
-				P.p("vB = "+mc.read(args[1]));
-			}
 			break;
 		}
 		case "if-gt"                   : 	// vA, vB, +CCCC
@@ -581,16 +569,25 @@ public class VM {
 			{
 				//this if statement is special because it can be used for object as well: "if (obj == null) ..."
 				int val = (!Dalvik.isPrimitiveType(vA.type))?
-						Condition.Greater:Condition.compare(vA, vB, "I");
+						Condition.Undetermined:Condition.compare(vA, vB, "I");
+
 				if (val == Condition.Undetermined)
 				{
 					Expression jumpCond = Expression.newCondition(jump, vA, vB);
 					Expression flowCond = Expression.newCondition(flow, vA, vB);
-					if (pathCondition.contains(flowCond)) {}
+					if (pathCondition.contains(flowCond)) {
+						//P.p("  has prev flow condition");
+					}
 					else if (pathCondition.contains(jumpCond))
+					{
 						mc.stmtIndex = jumpIndex;
+						//P.p("  has prev jump condition");
+					}
 					else
+					{
 						this.SymbolicPathing(mc, s, flow, jump, vA, vB, jumpIndex);
+					}
+						
 				}
 				else if (val == Condition.Equal)
 					mc.stmtIndex = jumpIndex;
@@ -617,7 +614,7 @@ public class VM {
 			else
 			{
 				int val = (!Dalvik.isPrimitiveType(vA.type))?
-						Condition.Greater:Condition.compare(vA, vB, "I");
+						Condition.Undetermined:Condition.compare(vA, vB, "I");
 				if (val == Condition.Undetermined)
 				{
 					Expression jumpCond = Expression.newCondition(jump, vA, vB);
@@ -827,7 +824,7 @@ public class VM {
 				return;
 			}
 			APEXArray arr = (APEXArray) obj;
-			arr.aput(mc.read(args[2]), mc.read(args[0]), this);
+			arr.aput(s, mc.read(args[2]), mc.read(args[0]), this);
 			break;
 		}
 		case "iget"                    : 	// vA, vB, field@CCCC
@@ -899,24 +896,18 @@ public class VM {
 			String[] paramRegs = s.getParamRegisters();
 			List<Expression> params = new ArrayList<>();
 			for (int i = 0; i < paramRegs.length; i++)
-				params.add(mc.read(paramRegs[i]));					
+			{
+				Expression exp = mc.read(paramRegs[i]);
+				params.add(exp);
+				if (Dalvik.isWideType(exp.type)) // skip a register if this is a wide value
+					i++;
+			}
 			
-
 			APEXMethod m = app.getNonLibraryMethod(args[1]);
 			if (m == null)
 			{
-/*				if (args[1].contains("contains"))
-				{
-					P.p(s.getUniqueID());
-					P.pause();
-				}*/
 				String returnType = args[1].substring(args[1].lastIndexOf(")")+1);
-/*				if (args[1].startsWith("Landroid/graphics/Canvas;->"))
-				{
-					boolean canSolve = APISolver.canSolve(args[1]);
-					P.p(args[1]+": "+ canSolve);
-					P.pause();
-				}*/
+
 				if (APISolver.canSolve(args[1]))
 				{
 					APISolver.solve(args[1], params, s, mc, paramRegs, this);
@@ -934,11 +925,10 @@ public class VM {
 				if (!nestedMC.paramValid)
 				{
 					crashed = true;
+					shouldStop = true;
 					return;
 				}
 				methodStack.push(nestedMC);
-				//P.p("\t[going into nested method] " + m.signature);
-				//nestedMC.print();
 			}
 			break;
 		}
@@ -1052,11 +1042,7 @@ public class VM {
 			mc.assign(args[0], Logic.shl(mc.read(args[1]), mc.read(args[2])));
 			break;
 		case "shr-int"                 : 	// vAA, vBB, vCC
-/*			if (s.index==64)
-			{
-				this.print();
-				P.pause();
-			}*/
+
 			mc.assign(args[0], Logic.shr(mc.read(args[1]), mc.read(args[2])));
 			break;
 		case "ushr-int"                : 	// vAA, vBB, vCC
@@ -1288,7 +1274,6 @@ public class VM {
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[0]), mc.read(args[1]), "F"));
 			break;
 		case "mul-float/2addr"         : 	// vA, vB
-			//P.p("[s]"+s.getUniqueID()+" "+s.smali);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[0]), mc.read(args[1]), "F"));
 			break;
 		case "div-float/2addr"         : 	// vA, vB
@@ -1461,26 +1446,26 @@ public class VM {
 		Expression jumpCond = Expression.newCondition(jump, left, right);
 		jumpCond.note = s.getUniqueID();
 		
-		//P.p("[symbolic] choosing flow at "+s.getUniqueID());
+		//P.p("  [symbolic] choosing flow at "+s.getUniqueID());
 		
-		if (!visitedBranches.contains(s))
+		if (!visitedBranches.contains(s)) // TODO: create symbolic path if only s was never visited???
 		{
-			//P.p("[Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
+			//P.p("    [Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
 			pathCondition.add(flowCond);
 			visitedBranches.add(s);
-			if (spawnClones && VM.pathCount < ExecutionEngine.pathLimit*2)
+			if (spawnClones)
 			{
 				VM otherVM = this.clone();
 				otherVM.pathCondition.add(jumpCond);
-				//P.p("[symbolic] branching jump at "+s.getUniqueID()+" "+jumpIndex);
+				//P.p("    [symbolic] adding jump to queue with cond "+jumpCond.toString());
 				otherVM.methodStack.peek().stmtIndex = jumpIndex;
 				otherVMs.add(otherVM);
 				VM.pathCount++;
 			}
 		}
-		else if (flowThrough)
+		else if (flowThrough) // forcing flow through
 		{
-			//P.p("[Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
+			//P.p("    [Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
 			pathCondition.add(flowCond);
 		}
 		else
@@ -1488,13 +1473,13 @@ public class VM {
 			Random rng = new Random();
 			if (rng.nextFloat()>0.5)
 			{
-				//P.p("[Assuming condition] "+jumpCond.toString()+" "+s.getUniqueID());
+				//P.p("    [Assuming condition] "+jumpCond.toString()+" "+s.getUniqueID());
 				pathCondition.add(jumpCond);
 				mc.stmtIndex = jumpIndex;
 			}
 			else
 			{
-				//P.p("[Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
+				//P.p("    [Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
 				pathCondition.add(flowCond);
 			}
 		}
@@ -1568,6 +1553,7 @@ public class VM {
 		Expression exp = heap.get(objName).fields.get(fieldSig);
 		if (exp == null) // need to create symbolic value
 		{
+			//P.p("  creating symbolic field "+fieldSig);
 			String name = fieldSig.substring(fieldSig.indexOf("->")+2, fieldSig.indexOf(":"));
 			String type = fieldSig.substring(fieldSig.indexOf(":")+1);
 			if (Dalvik.isPrimitiveType(type))
@@ -1586,6 +1572,7 @@ public class VM {
 				exp = obj.reference;
 			}
 			exp.isSymbolic = true;
+			heap.get(objName).fields.put(fieldSig, exp);
 		}
 		return exp;
 	}

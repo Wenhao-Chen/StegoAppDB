@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 
 public class Optimizer {
 
@@ -20,10 +20,10 @@ public class Optimizer {
 		importantAPIs = new HashSet<>();
 		for (String api : APISignatures.bitmapAPIs)
 			importantAPIs.add(api);
-		for (String api : APISignatures.BitmapFactorySigs)
+		for (String api : APISignatures.LoadBitmapSigs)
 			importantAPIs.add(api);
-		for (String api : APISignatures.canvasAPIs)
-			importantAPIs.add(api);
+		//for (String api : APISignatures.canvasAPIs)
+		//	importantAPIs.add(api);
 	}
 	
 	public Optimizer(APEXApp app)

@@ -2,7 +2,7 @@ package apex.symbolic.solver.api;
 
 import java.util.List;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
 import apex.symbolic.MethodContext;

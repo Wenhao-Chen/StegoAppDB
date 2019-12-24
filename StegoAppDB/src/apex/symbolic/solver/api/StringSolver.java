@@ -3,7 +3,7 @@ package apex.symbolic.solver.api;
 import java.util.List;
 import java.util.Random;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXArray;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
@@ -42,7 +42,7 @@ public class StringSolver extends SolverInterface{
 				String[] parts = s1.toString().split(s2.toString());
 				APEXArray arr = vm.createNewArray("[Ljava/lang/String;", "solver", Expression.newLiteral("I", parts.length+""), s.getUniqueID());
 				for (int i = 0; i < parts.length; i++)
-					arr.aput(Expression.newLiteral("I", i+""), Expression.newLiteral("Ljava/lang/String;", parts[i]), vm);
+					arr.aput(s, Expression.newLiteral("I", i+""), Expression.newLiteral("Ljava/lang/String;", parts[i]), vm);
 				vm.recentResult = arr.reference;
 			}
 			else
@@ -162,7 +162,7 @@ public class StringSolver extends SolverInterface{
 				APEXArray arr = vm.createNewArray("[B", "String.getBytes()", Expression.newLiteral("I", bytes.length+""), s.getUniqueID());
 				for (int i = 0; i < bytes.length; i++)
 				{
-					arr.aput(Expression.newLiteral("I", i+""), Expression.newLiteral("I", (int)bytes[i]+""), vm);
+					arr.aput(s, Expression.newLiteral("I", i+""), Expression.newLiteral("I", (int)bytes[i]+""), vm);
 				}
 				vm.recentResult = arr.reference;
 			}

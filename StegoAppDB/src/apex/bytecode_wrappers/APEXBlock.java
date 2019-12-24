@@ -1,4 +1,4 @@
-package apex.code_wrappers;
+package apex.bytecode_wrappers;
 
 import java.util.ArrayList;
 import java.util.Arrays;

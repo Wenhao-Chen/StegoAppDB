@@ -1,4 +1,4 @@
-package apex.code_wrappers;
+package apex.bytecode_wrappers;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -50,6 +50,7 @@ public class APEXClass {
 	}
 	
 	
+	private int currLine;
 	private void parseSmali()
 	{
 		fields = new HashMap<>();
@@ -64,8 +65,10 @@ public class APEXClass {
 		{
 			in = new BufferedReader(new FileReader(smaliF));
 			String line;
+			currLine = 0;
 			while ((line=in.readLine())!=null)
 			{
+				currLine++;
 				if (line.isEmpty() || line.charAt(0)!='.')
 					continue;
 					
@@ -105,6 +108,7 @@ public class APEXClass {
 					List<String> fieldBody = new ArrayList<>();
 					fieldBody.add(line);
 					line = in.readLine();
+					currLine++;
 					if (line!=null && line.trim().startsWith(".annotation"))
 					{
 						fieldBody.add(line);
@@ -117,8 +121,10 @@ public class APEXClass {
 				case ".method":
 					List<String> methodBody = new ArrayList<>();
 					methodBody.add(line);
+					int num = currLine;
 					readLinesUntil(methodBody, ".end method");
 					APEXMethod m = new APEXMethod(methodBody, this);
+					m.lineNumber = num;
 					methods.put(m.signature, m);
 					
 					String name = m.getName();
@@ -205,6 +211,13 @@ public class APEXClass {
 			add("Lsse/org/bouncycastle/*");
 			add("Lca/repl/camopic/gl/*");
 			add("Lcom/caverock/androidsvg/SVGAndroidRenderer;");
+			add("Lcom/adobe/*");
+			add("Lcom/squareup/picasso/*");
+			add("Lcom/behance/sdk/*");
+			add("Lcom/cyberlink/photodirector/widgetpool/*");
+			add("Lorg/intellij/lang/*");
+			add("Lorg/jetbrains/*");
+			add("Lbutterknife/*");
 	}};
 	
 	public boolean isLibraryClass()
@@ -236,6 +249,7 @@ public class APEXClass {
 			String line;
 			while ((line=in.readLine())!=null)
 			{
+				currLine++;
 				list.add(line);
 				if (line.equals(endLine))
 					return;
@@ -299,5 +313,11 @@ public class APEXClass {
 			result.add("");
 		}
 		return result;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getJavaName();
 	}
 }

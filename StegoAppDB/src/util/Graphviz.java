@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXMethod;
 import apex.graphs.CallGraph;
 import apex.graphs.ControlFlowGraph;
 import ui.ProgressUI;

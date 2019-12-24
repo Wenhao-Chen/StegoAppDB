@@ -2,9 +2,12 @@ package apex;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -13,8 +16,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXMethod;
 import util.Apktool;
 import util.Dalvik;
 import util.F;
@@ -126,6 +129,14 @@ public class APEXApp {
 		return null;
 	}
 	
+	public APEXClass[] getNonLibraryClassesAsArray()
+	{
+		List<APEXClass> list = getNonLibraryClasses();
+		APEXClass[] arr = list.toArray(new APEXClass[list.size()]);
+		Arrays.sort(arr, (c1,c2)->(c1.getJavaName().compareTo(c2.getJavaName())));
+		return arr;
+	}
+	
 	public APEXMethod getMethod(String methodSig)
 	{
 		String classDexName = methodSig.substring(0, methodSig.indexOf("->"));
@@ -136,6 +147,17 @@ public class APEXApp {
 		if (m != null && !m.modifiers.contains("abstract") && !m.modifiers.contains("native"))
 			return m;
 		return null;
+	}
+	
+	public Set<APEXMethod> getMethods(List<String> sigs)
+	{
+		Set<APEXMethod> res = new HashSet<>();
+		sigs.forEach(sig -> {
+			APEXMethod m = getMethod(sig);
+			if (m != null)
+			res.add(m);
+		});
+		return res;
 	}
 	
 	private void parseSmali()

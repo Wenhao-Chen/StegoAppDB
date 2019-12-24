@@ -11,14 +11,13 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXClass;
-import apex.code_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXClass;
+import apex.bytecode_wrappers.APEXMethod;
 import apex.graphs.CallGraph;
 import apex.symbolic.APEXObject;
+import apex.symbolic.APEXObject.BitmapAccess;
 import apex.symbolic.Expression;
 import apex.symbolic.VM;
-import apex.symbolic.APEXObject.BitmapAccess;
-import apex.symbolic.solver.Arithmetic;
 import ui.ProgressUI;
 import util.Dalvik;
 import util.F;
@@ -76,11 +75,14 @@ public class ExecutionEngine {
 		}
 		num += alreadyDone.size();
 		cg.updateMethodCallGraph(alreadyDone);
-		int island1 = cg.countIslands();
+		File cgDir = new File("C:/workspace/app_analysis/graphs/cg");
+		cgDir.mkdirs();
+		Graphviz.makeDotGraph(cg.getDotGraph(), app.packageName+"_CG_big", cgDir);
+		List<Set<CallGraph.Vertex>> island1 = cg.countIslands();
 		cg.updateMethodCallGraph(alreadyAlter);
-		int island2 = cg.countIslands();
-		//P.p("\n------------ app " + app.packageName+". Method count: " + methods.size()+". Island1/Island2 = " + island1+"/"+island2);
-		P.p(app.packageName+"\t"+island1+"\t"+island2);
+		Graphviz.makeDotGraph(cg.getDotGraph(), app.packageName+"_CG_trimmed", cgDir);
+		List<Set<CallGraph.Vertex>> island2 = cg.countIslands();
+		//P.p(app.packageName+" method count: " + methods.size()+". Island1/Island2 = " + island1+"/"+island2);
 		for (APEXMethod m : methods)
 		{
 			if (alreadyDone.contains(m.signature))
@@ -131,7 +133,18 @@ public class ExecutionEngine {
 			}
 		}
 		F.writeLine(String.format("%s\t%d\t%d\t%d", app.packageName, total, alter, unknown), output_summary, true);
-		//P.p("Finished analyzing app "+app.packageName+". Found " + alter+" image alteration methods. Island ="+island2);
+		P.pf("%s\t%s\t%d\t%d\t%d\n", app.apk.getParentFile().getName(), app.packageName, island1.size(), island2.size(), alter);
+		File resultF = new File(recordF.getParentFile(), app.apk.getName()+"_result.txt");
+		F.writeLine(String.format("%s\t%s\t%d\t%d\t%d\n", app.apk.getParentFile().getName(), app.packageName, island1.size(), island2.size(), alter),
+				resultF, false);
+		for (Set<CallGraph.Vertex> set : island2)
+		{
+			F.writeLine("-- Island ---", resultF, true);
+			for (CallGraph.Vertex v : set)
+				F.writeLine("  "+v.m.signature, resultF, true);
+			F.writeLine("", resultF, true);
+		}
+		//P.p(app.packageName+": # image alteration methods: "+alter+". # Connected CGs: "+island2);
 	}
 	
 	public static void findImageAlterationMethods2(APEXApp app, File recordF, File notesF, boolean redo)
@@ -174,12 +187,10 @@ public class ExecutionEngine {
 		if (redo)
 			F.write("", recordF, false);
 		
-		boolean shouldPause = false;
 		for (APEXMethod m : methods)
 		{
 			if (alreadyDone.contains(m.signature))
 				continue;
-			shouldPause = true;
 			//Graphviz.makeCFG(app, m.signature);
 			otherVMs = new LinkedList<>();
 			P.p("doing method " + num+++"/"+total+": "+m.signature);
@@ -208,27 +219,8 @@ public class ExecutionEngine {
 				
 		}
 		P.p("Finished analyzing app "+app.packageName+". Found " + alter+" image alteration methods, "+ stego+" of those are probably stego methods.");
-/*		if (shouldPause)
-		{
-			P.p("Press Enter to continue.");
-			P.pause();
-		}*/
 	}
-	
-	private static void printPixelOrder(List<int[]> order)
-	{
-		System.out.print("\t***setPixel Order:\n");
-		for (int i = 0; i < order.size(); i++)
-		{
-			if (i%10==0)
-				System.out.print("\t");
-			int[] coord = order.get(i);
-			System.out.print("("+coord[0]+","+coord[1]+")  ");
-			if (i%10==9)
-				System.out.print("\n");
-		}
-		System.out.print("\n");
-	}
+
 	
 	private static void printPixelOrder3(VM vm, File f)
 	{
@@ -254,20 +246,7 @@ public class ExecutionEngine {
 		P.p("====================================");
 		vm.writeToFile(f, true);
 	}
-	
-	private static void printPixelOrder2(List<String> order)
-	{
-		System.out.print("\t***setPixel Order:\n");
-		for (int i = 0; i < order.size(); i++)
-		{
-			if (i%10==0)
-				System.out.print("\t");
-			System.out.print(order.get(i));
-			if (i%10==9)
-				System.out.print("\n");
-		}
-		System.out.print("\n");
-	}
+
 	
 	static class Result {
 		int type = -1;
@@ -306,35 +285,6 @@ public class ExecutionEngine {
 			{
 				i++;
 			}
-/*			if (!vm.crashed)
-			{
-				int opCount = countImageOperations(vm);
-				// only return the path that has most Image Operations
-				if (res.vm==null)
-				if (hasSetAndGetPixel(vm))
-				{
-					otherVMs.clear();
-					Result thisRes = new Result();
-					thisRes.type = 1;
-					thisRes.vm = vm;
-					thisRes.setPixelOrder = getSetPixelOrder(vm);
-					thisRes.setPixelOrder2 = getSetPixelOrder2(vm);
-					if (thisRes.setPixelOrder2.size()>res.setPixelOrder2.size())
-						res = thisRes;
-				}
-				if (hasSetPixel(vm))
-				{
-					otherVMs.clear();
-					Result thisRes = new Result();
-					thisRes.type = 2;
-					thisRes.vm = vm;
-					thisRes.setPixelOrder = getSetPixelOrder(vm);
-					thisRes.setPixelOrder2 = getSetPixelOrder2(vm);
-					if (thisRes.setPixelOrder2.size()>res.setPixelOrder2.size())
-						res = thisRes;
-				}
-				i++;
-			}*/
 		}
 		otherVMs.clear();
 		res.numBranches = i;
@@ -350,36 +300,8 @@ public class ExecutionEngine {
 		}
 		return res;
 	}
-	
-	private static List<String> getSetPixelOrder2(VM vm)
-	{
-		List<String> res = new ArrayList<>();
-		for (APEXObject obj : vm.heap.values())
-		{
-			for (BitmapAccess access : obj.bitmapHistory)
-			{
-				res.add("("+access.x.toString()+","+access.y.toString()+")");
-			}
-		}
-		return res;
-	}
-	
-	private static List<int[]> getSetPixelOrder(VM vm)
-	{
-		List<int[]> res = new ArrayList<>();
-		for (APEXObject obj : vm.heap.values())
-		{
-			for (BitmapAccess access : obj.bitmapHistory)
-			{
-				if (access.x.isLiteral() && !access.x.isSymbolic && access.y.isLiteral() && !access.y.isSymbolic)
-				{
-					res.add(new int[] {Arithmetic.parseInt(access.x.toString()), Arithmetic.parseInt(access.y.toString())});
-				}
-			}
-		}
-		return res;
-	}
-	
+
+
 	public static void concreteExec(APEXApp app, APEXMethod m)
 	{
 		int i = 0;
@@ -410,35 +332,6 @@ public class ExecutionEngine {
 		}
 	}
 	
-	private static boolean hasBitmapObject(VM vm)
-	{
-		for (APEXObject obj : vm.heap.values())
-		{
-			if (obj.type.equals("Landroid/graphics/Bitmap;"))
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private static boolean hasSetAndGetPixel(VM vm)
-	{
-		for (APEXObject obj : vm.heap.values())
-		{
-			if (obj.type.equals("Landroid/graphics/Bitmap;"))
-			{
-				for (BitmapAccess access : obj.bitmapHistory)
-				{
-					if (access.action.equals("setPixel") && access.c.toString().contains("getPixel"))
-					{
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
 	
 	private static boolean hasSetPixel(VM vm)
 	{
@@ -458,31 +351,16 @@ public class ExecutionEngine {
 		return false;
 	}
 	
-	private static int countSetPixel(VM vm)
-	{
-		int count = 0;
-		for (APEXObject obj : vm.heap.values())
-		{
-			if (obj.type.equals("Landroid/graphics/Bitmap;"))
-			{
-				for (BitmapAccess access : obj.bitmapHistory)
-				{
-					if (access.action.equals("setPixel"))
-					{
-						count++;
-					}
-				}
-			}
-		}
-		return count;
-	}
-	//C:\workspace\app_analysis\apks\stego
+
 	static final String apk_root = "C:/workspace/app_analysis/apks";
 	static final String stego_root = apk_root+"/stego";
 	static final String water_root = apk_root+"/watermarking";
 	static final String selfie_root = apk_root+"/beautifying";
 	
-	static final Set<String> methods_to_skip = new HashSet<String>(){{
+	static final Set<String> methods_to_skip = new HashSet<String>(){
+		private static final long serialVersionUID = 1L;
+
+	{
 		add("Lca/repl/free/camopic/ac;->b(Ljava/io/InputStream;)[B");
 		add("Lcom/github/gcacace/signaturepad/views/SignaturePad;->onTouchEvent(Landroid/view/MotionEvent;)Z");
 		add("Lcom/github/gcacace/signaturepad/views/SignaturePad;->b(Lcom/github/gcacace/signaturepad/a/f;)V");
@@ -505,40 +383,30 @@ public class ExecutionEngine {
 		VM.printDebug = false;
 		APEXApp.verbose = false;
 		
-		
-		/*String testApp = stego_app_root+"/"+stego_apps[6];
-		//String methodSig = "Lcom/akseltorgard/steganography/utils/SteganographyUtils;->decode([I)Ljava/lang/String;";
-		APEXApp app = new APEXApp(new File(testApp), false);
-		otherVMs = new LinkedList<>();
-		findStego(app);*/
-		
-		List<File> apks = new ArrayList<>();
-		for (File dir : new File(apk_root).listFiles())
-		if (dir.getName().contains("stego"))
-		for (File f : dir.listFiles())
-			apks.add(f);
-		System.out.println("total number: "+apks.size());
-		//if (true)
-		//	return;
-		//for (File apk : new File(stego_root).listFiles())
-		//	apks.add(apk);
-		//for (File apk : new File(water_root).listFiles())
-		//	apks.add(apk);
-		//for (File apk : new File(selfie_root).listFiles())
-		//	apks.add(apk);
-		
 		Set<String> skip = new HashSet<>(Arrays.asList(
 				//"jubatus.android.davinci.apk",
 				//"com.dinaga.photosecret.apk",
 				//"it.mobistego.apk",
 				//"com.talixa.pocketstego.apk",
 				//"ca.repl.free.camopic.apk",
-				"com.fruiz500.passlok.apk"
+				"com.fruiz500.passlok.apk",
 				//"com.romancinkais.stegais.apk",
 				//"info.guardianproject.pixelknot.apk",
-				//"com.paranoiaworks.unicus.android.sse.apk",
+				"com.paranoiaworks.unicus.android.sse.apk"
 				//"sk.panacom.stegos.apk"
 				));
+		
+		List<File> apks = new ArrayList<>();
+		for (File dir : new File(apk_root).listFiles()) 
+		if (!dir.getName().contentEquals("instrumented") && !dir.getName().contentEquals("beautifying"))
+		for (File f : dir.listFiles())
+		if (!skip.contains(f.getName()))
+			apks.add(f);
+		System.out.println("total number: "+apks.size());
+
+		//apks.clear();
+		//apks.add(new File("E:\\crawled_from_github\\android\\StegoBenchmark\\app\\build\\outputs\\apk\\debug\\app-debug.apk"));
+
 		int i = 1;
 		File summaryDir = new File("C:/workspace/app_analysis/notes/summaries");
 		summaryDir.mkdirs();
@@ -549,28 +417,14 @@ public class ExecutionEngine {
 				continue;
 			
 			app_progress.newLine(i++ +"/"+apks.size()+":  "+apk.getAbsolutePath());
-			//P.p("doing app "+apk.getName());
 			File recordF = new File("C:/workspace/app_analysis/notes/SymbolicExecution/"+apk.getName()+"_brief.csv");
 			File notesF = new File("C:/workspace/app_analysis/notes/SymbolicExecution/"+apk.getName()+"_details.csv");
 			APEXApp a = new APEXApp(apk, false);
 			otherVMs = new LinkedList<>();
 			findImageAlterationMethods(a, recordF, notesF, false);
-			//P.p("Press Enter to Continue");
-			//P.pause();
 		}
 		
 		P.p("All Done.");
-		
-/*		for (String name : stego_apps)
-		{
-			String path = stego_app_root+"/"+name;
-			
-			File recordF = new File("C:/Users/C03223-Stego2/Desktop/stego/notes/SymbolicExecution/"+name+".csv");
-			APEXApp a = new APEXApp(new File(path), false);
-			otherVMs = new LinkedList<>();
-			findStego(a, recordF);
-		}
-*/
 	}
 	
 

@@ -14,6 +14,12 @@ import javax.swing.SwingUtilities;
 @SuppressWarnings("serial")
 public class ProgressUI extends JPanel{
 
+	
+	public static ProgressUI create(String title)
+	{
+		return create(title, 20);
+	}
+	
 	public static ProgressUI create(String title, int labelCount)
 	{
 		ProgressUI ui = new ProgressUI(labelCount);

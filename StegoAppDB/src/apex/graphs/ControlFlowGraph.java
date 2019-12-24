@@ -7,18 +7,18 @@ import java.util.Map;
 import java.util.Set;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXBlock;
-import apex.code_wrappers.APEXMethod;
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXBlock;
+import apex.bytecode_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXStatement;
 import util.Graphviz;
 
 public class ControlFlowGraph {
 
 	public static void main(String[] args)
 	{
-		File apk = new File("C:\\Users\\C03223-Stego2\\Desktop\\stego\\other_apps\\original_apks\\Camopic Lite_v1.1.1_apkpure.com.apk");
+		File apk = new File("E:\\crawled_from_github\\android\\StegoBenchmark\\app\\build\\outputs\\apk\\debug\\app-debug.apk");
 		String methodSig = 
-				" Lca/repl/camopic/a/d;->a(ILjava/io/InputStream;Lca/repl/camopic/a/e;)V";
+				"Lwenhaoc/stegodb/stegobenchmark/LSB;->Ver1(Landroid/graphics/Bitmap;[B)Landroid/graphics/Bitmap;";
 		
 		APEXApp app = new APEXApp(apk);
 		Graphviz.makeCFG(app, methodSig);

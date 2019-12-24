@@ -1,4 +1,4 @@
-package apex.code_wrappers;
+package apex.bytecode_wrappers;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,6 +16,7 @@ public class APEXMethod {
 	public List<APEXStatement> statements;
 	public List<APEXBlock> blocks;
 	
+	public int lineNumber;
 	// All modifiers:
 	// 	public private protected
 	// 	static final
@@ -23,13 +24,13 @@ public class APEXMethod {
 	// 	declared-synchronized bridge varargs
 	public Set<String> modifiers;
 	
-	private APEXClass c;
+	public APEXClass c;
 	
 	private DebugInfo debugInfo;
 	private List<SupplementalData> supplementalDataBlocks;
 	
 	private class DebugInfo {
-		int locals = -1, addedLocals = 0;
+		int locals = -1, addedLocals = 0, lineNumber = 1;
 		List<String> paramsInfo = new ArrayList<String>();
 		List<String> annotations = new ArrayList<String>();
 		List<String> catchInfo = new ArrayList<String>();
@@ -359,5 +360,11 @@ public class APEXMethod {
 		}
 		result.add(".end method");
 		return result;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return subSignature;
 	}
 }

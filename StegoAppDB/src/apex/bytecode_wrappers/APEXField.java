@@ -1,4 +1,4 @@
-package apex.code_wrappers;
+package apex.bytecode_wrappers;
 
 import java.util.HashSet;
 import java.util.List;
@@ -53,5 +53,12 @@ public class APEXField {
 		
 		subSignature = parts[parts.length-1];
 		signature = c.dexName+"->"+subSignature;
+	}
+	
+	
+	@Override
+	public String toString()
+	{
+		return subSignature;
 	}
 }

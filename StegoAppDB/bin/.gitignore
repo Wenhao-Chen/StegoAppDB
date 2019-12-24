@@ -1,8 +1,8 @@
-/_notes/
-/apex/
 /app_analysis/
+/apex/
+/ui/
+/util/
+/_notes/
 /crawling/
 /database/
 /stego/
-/ui/
-/util/

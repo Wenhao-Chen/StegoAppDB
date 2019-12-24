@@ -247,7 +247,7 @@ public class Arithmetic {
 			return (float)Math.PI;
 		if (val.contains("."))
 			return Float.parseFloat(val.replace("f", ""));
-		if (val.startsWith("0x0") || val.startsWith("-0x"))
+		if (val.startsWith("0x") || val.startsWith("-0x"))
 		{
 			Long l = Long.parseLong(val.replace("0x", ""), 16);
 			return Float.intBitsToFloat(l.intValue());
@@ -268,10 +268,14 @@ public class Arithmetic {
 	{
 		if (val.equals("Double.MAX_VALUE"))
 			return Double.MAX_VALUE;
-		else if (val.equals("Double.MIN_VALUE"))
+		if (val.equals("Double.MIN_VALUE"))
 			return Double.MIN_VALUE;
+		if (val.contentEquals("Double.POSITIVE_INFINITY"))
+			return Double.MAX_VALUE;
 		if (val.equals("Math.PI"))
 			return Math.PI;
+		if (val.contentEquals("Double.NaN"))
+			return Double.NaN;
 		else return Double.parseDouble(val.replace("0x", ""));
 	}
 }

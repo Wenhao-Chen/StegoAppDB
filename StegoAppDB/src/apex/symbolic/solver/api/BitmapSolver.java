@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXArray;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
@@ -29,8 +29,8 @@ public class BitmapSolver extends SolverInterface{
 			Expression x = mc.read(paramRegs[1]);
 			Expression y = mc.read(paramRegs[2]);
 			
-			vm.bitmapAccess.add(new BitmapAccess("getPixel", invokeSig, params));
-			bitmap.bitmapHistory.add(new BitmapAccess("getPixel", x, y, null));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "getPixel", invokeSig, params));
+			bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "getPixel", x, y, null));
 			if (x.isLiteral()&&!x.isSymbolic&&y.isLiteral()&&!y.isSymbolic&&bitmap.concreteBitmap!=null)
 			{
 				int xx = Arithmetic.parseInt(x.toString());
@@ -52,12 +52,12 @@ public class BitmapSolver extends SolverInterface{
 			arr.width = params.get(6).clone();
 			arr.height = params.get(7).clone();
 			
-			BitmapAccess acc = new BitmapAccess();
+			BitmapAccess acc = new BitmapAccess(s.getUniqueID());
 			acc.action = "getPixels";
 			for (Expression p : params)
 				acc.params.add(p.clone());
 			bitmap.bitmapHistory.add(acc);
-			vm.bitmapAccess.add(new BitmapAccess("getPixels", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "getPixels", invokeSig, params));
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->setPixel(III)V"))
 		{
@@ -65,15 +65,15 @@ public class BitmapSolver extends SolverInterface{
 			Expression x = mc.read(paramRegs[1]);
 			Expression y = mc.read(paramRegs[2]);
 			Expression c = mc.read(paramRegs[3]);
-			bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, c));
-			vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, params));
+			bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, c));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, params));
 			if (x.isLiteral()&&!x.isSymbolic && y.isLiteral()&&!y.isSymbolic && c.isLiteral()&&!c.isSymbolic && bitmap.concreteBitmap!=null)
 			{
 				bitmap.concreteBitmap[Arithmetic.parseInt(x.toString())][Arithmetic.parseInt(y.toString())] = c.clone();
 			}
-/*			P.p(s.getUniqueID()+" "+s.smali);
-			P.p("set pixel "+x.toString()+" "+y.toString()+" to "+c.toString());
-			P.pause();*/
+			//P.p(s.getUniqueID()+" "+s.smali);
+			//P.p("set pixel "+x.toString()+" "+y.toString()+" to "+c.toString());
+			//P.pause();
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->setPixels([IIIIIII)V"))
 		{
@@ -90,19 +90,19 @@ public class BitmapSolver extends SolverInterface{
 			Expression width = params.get(6);
 			
 
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "setPixels";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("setPixels", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixels", invokeSig, params));
 			for (AputHistory aput : arr.aputHistory)
 			{
 				Expression x = Arithmetic.rem(aput.index, width, "I");
 				Expression y = Arithmetic.div(aput.index, width, "I");
-				bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, aput.val.clone()));
+				bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
 				List<Expression> pp = new ArrayList<>(Arrays.asList(bitmap.reference, x, y, aput.val));
-				vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, pp));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, pp));
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->createBitmap([IIIIILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;"))
@@ -116,19 +116,19 @@ public class BitmapSolver extends SolverInterface{
 			APEXArray arr = (APEXArray) vm.heap.get(params.get(0).getObjID());
 			APEXObject bitmap = vm.createNewObject("Landroid/graphics/Bitmap;", "createBitmap([IIIIIConfig)", s.getUniqueID(), false);
 			Expression width = params.get(3);
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "setPixels";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("setPixels", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixels", invokeSig, params));
 			for (AputHistory aput : arr.aputHistory)
 			{
 				Expression x = Arithmetic.rem(aput.index, width, "I");
 				Expression y = Arithmetic.div(aput.index, width, "I");
-				bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, aput.val.clone()));
+				bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
 				List<Expression> pp = new ArrayList<>(Arrays.asList(bitmap.reference, x, y, aput.val));
-				vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, pp));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, pp));
 			}
 			vm.recentResult = bitmap.reference;
 		}
@@ -143,19 +143,19 @@ public class BitmapSolver extends SolverInterface{
 			APEXArray arr = (APEXArray) vm.heap.get(params.get(0).getObjID());
 			APEXObject bitmap = vm.createNewObject("Landroid/graphics/Bitmap;", "createBitmap([IIIIIConfig)", s.getUniqueID(), false);
 			Expression width = params.get(1);
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "setPixels";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("setPixels", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixels", invokeSig, params));
 			for (AputHistory aput : arr.aputHistory)
 			{
 				Expression x = Arithmetic.rem(aput.index, width, "I");
 				Expression y = Arithmetic.div(aput.index, width, "I");
-				bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, aput.val.clone()));
+				bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
 				List<Expression> pp = new ArrayList<>(Arrays.asList(bitmap.reference, x, y, aput.val));
-				vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, pp));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, pp));
 			}
 			vm.recentResult = bitmap.reference;
 		}
@@ -180,12 +180,12 @@ public class BitmapSolver extends SolverInterface{
 			}
 			vm.recentResult = bitmap.reference;
 			
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "createBitmap (empty)";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->createBitmap(Landroid/graphics/Bitmap;)Landroid/graphics/Bitmap;"))
 		{
@@ -200,11 +200,11 @@ public class BitmapSolver extends SolverInterface{
 					res.bitmapHeight=bitmap.bitmapHeight.clone();
 				vm.recentResult = res.reference;
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "created_from_bitmap";
 				a.copied_from = bitmap.reference;
 				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->createBitmap(Landroid/graphics/Bitmap;IIII)Landroid/graphics/Bitmap;"))
@@ -218,11 +218,11 @@ public class BitmapSolver extends SolverInterface{
 				res.height = params.get(4).clone();
 				vm.recentResult = res.reference;
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "created_from_bitmap";
 				a.copied_from = bitmap.reference;
 				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->createBitmap(Landroid/graphics/Bitmap;IIIILandroid/graphics/Matrix;Z)Landroid/graphics/Bitmap;"))
@@ -236,11 +236,11 @@ public class BitmapSolver extends SolverInterface{
 				res.height = params.get(4).clone();
 				vm.recentResult = res.reference;
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "created_from_bitmap";
 				a.copied_from = bitmap.reference;
 				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 				
 				//APEXObject matrix = vm.heap.get(params.get(5).getObjID());
 /*				if (matrix.matrix_scaleX==null || matrix.matrix_scaleY==null)
@@ -281,11 +281,11 @@ public class BitmapSolver extends SolverInterface{
 				res.height = params.get(2).clone();
 				vm.recentResult = res.reference;
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "created_from_bitmap";
 				a.copied_from = bitmap.reference;
 				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 				
 /*				P.p("\n\n--------- create scaled bitmap");
 				P.p("*** source bitmap: " + bitmap.objID);
@@ -336,24 +336,24 @@ public class BitmapSolver extends SolverInterface{
 			buffer.bitmapReference = params.get(0).clone();
 			
 			APEXObject bitmap = vm.heap.get(buffer.bitmapReference.getObjID());
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "getPixelsToBuffer";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("getPixelsToBuffer", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "getPixelsToBuffer", invokeSig, params));
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->copyPixelsFromBuffer(Ljava/nio/Buffer;)V"))
 		{
 			APEXObject bitmap = vm.heap.get(params.get(0).getObjID());
 			APEXObject buffer = vm.heap.get(params.get(1).getObjID());
 			
-			BitmapAccess a = new BitmapAccess();
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "setPixelsFromBuffer";
 			for (Expression p : params)
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
-			vm.bitmapAccess.add(new BitmapAccess("setPixelsToBuffer", invokeSig, params));
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixelsToBuffer", invokeSig, params));
 			
 			if (buffer.arrayReference!=null)
 			{
@@ -373,15 +373,15 @@ public class BitmapSolver extends SolverInterface{
 						Expression pixelIndex = Arithmetic.div(aput.index, Expression.newLiteral("I", "4"), "I");
 						Expression x = Arithmetic.rem(pixelIndex, bitmap.width, "I");
 						Expression y = Arithmetic.div(pixelIndex, bitmap.width, "I");
-						bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, aput.val.clone()));
-						vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, Arrays.asList(bitmap.reference, x, y, aput.val)));
+						bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
+						vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, Arrays.asList(bitmap.reference, x, y, aput.val)));
 					}
 					else // each int element represents all 4 channels of a pixels
 					{
 						Expression x = Arithmetic.rem(aput.index, bitmap.width, "I");
 						Expression y = Arithmetic.div(aput.index, bitmap.width, "I");
-						bitmap.bitmapHistory.add(new BitmapAccess("setPixel", x, y, aput.val.clone()));
-						vm.bitmapAccess.add(new BitmapAccess("setPixel", invokeSig, Arrays.asList(bitmap.reference, x, y, aput.val)));
+						bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
+						vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, Arrays.asList(bitmap.reference, x, y, aput.val)));
 					}
 					
 				}
@@ -393,12 +393,12 @@ public class BitmapSolver extends SolverInterface{
 			if (id != null)
 			{
 				APEXObject bitmap = vm.heap.get(id);
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "compress";
 				for (Expression p : params)
 					a.params.add(p.clone());
 				bitmap.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("compress", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "compress", invokeSig, params));
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->copy(Landroid/graphics/Bitmap$Config;Z)Landroid/graphics/Bitmap;"))
@@ -414,11 +414,11 @@ public class BitmapSolver extends SolverInterface{
 					res.bitmapHeight=bitmap.bitmapHeight.clone();
 				vm.recentResult = res.reference;
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "getPixelsFromBitmap";
 				a.copied_from = bitmap.reference;
 				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("createBitmap", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 
 			}
 		}
@@ -429,10 +429,10 @@ public class BitmapSolver extends SolverInterface{
 			{
 				APEXObject bitmap = vm.heap.get(id);
 				
-				BitmapAccess a = new BitmapAccess();
+				BitmapAccess a = new BitmapAccess(s.getUniqueID());
 				a.action = "recycled";
 				bitmap.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess("recycle", invokeSig, params));
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "recycle", invokeSig, params));
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Color;->argb(IIII)I"))

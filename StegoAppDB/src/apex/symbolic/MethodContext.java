@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import apex.APEXApp;
-import apex.code_wrappers.APEXMethod;
+import apex.bytecode_wrappers.APEXMethod;
 import apex.symbolic.solver.Arithmetic;
 import util.Dalvik;
 import util.Graphviz;
@@ -48,9 +48,10 @@ public class MethodContext {
 		}
 
 		ArrayList<String> dexNames = m.getParamTypeDexNames();
-		int i = 0;
+		int j = 0, i = 0;
 		for (String dexName : dexNames)
 		{
+			//P.p("[temp] reading "+dexName+" type from index "+i);
 			Register r = new Register("p"+i);
 			regs.put(r.name, r);
 			regs.put("v"+(locals+i), r);
@@ -77,7 +78,7 @@ public class MethodContext {
 			}
 			else
 			{
-				Expression input = args.get(i);
+				Expression input = args.get(j);
 				//NOTE: in bytecode, null is represented as a literal 0. For example: "const/4, v0, 0x0"
 				if (Dalvik.isPrimitiveType(input.type) && !Dalvik.isPrimitiveType(dexName) && Arithmetic.parseInt(input.getLiteralValue())==0)
 				{
@@ -86,6 +87,9 @@ public class MethodContext {
 				else if ((Dalvik.isPrimitiveType(input.type) && !Dalvik.isPrimitiveType(dexName)) ||
 						(!Dalvik.isPrimitiveType(input.type) && Dalvik.isPrimitiveType(dexName)))
 				{
+					vm.crashed = vm.shouldStop = true;
+					return;
+					/*
 					P.e("    [Invoke Parameter Type Mismatch] param "+i+": "+input.type+" vs "+dexName+". "+m.signature);
 					MethodContext mc = vm.methodStack.peek();
 					P.e("    "+mc.m.statements.get(mc.stmtIndex).getUniqueID());
@@ -93,8 +97,9 @@ public class MethodContext {
 					P.pause();
 					paramValid = false;
 					return;
+					*/
 				}
-				r.value = args.get(i).clone();
+				r.value = args.get(j++).clone();
 			}
 			i++;
 			
@@ -107,6 +112,7 @@ public class MethodContext {
 				low.isWideLow = true;
 				prev = low;
 			}
+			
 		}
 	}
 	

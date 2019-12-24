@@ -1,4 +1,4 @@
-package apex.code_wrappers;
+package apex.bytecode_wrappers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -285,7 +285,14 @@ public class APEXStatement {
 		}
 		else if (line.startsWith("    .line "))
 		{
-			debugInfo.lineNumber = Integer.parseInt(line.substring(line.lastIndexOf(" ")+1));
+			try
+			{
+				debugInfo.lineNumber = Integer.parseInt(line.substring(line.lastIndexOf(" ")+1));
+			}
+			catch (NumberFormatException e)
+			{
+				//NOTE: some apps use ridiculous line numbers
+			}
 		}
 		else if (line.startsWith("    :try_start_"))
 		{

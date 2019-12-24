@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.solver.Arithmetic;
 import util.Dalvik;
 import util.P;
@@ -79,7 +79,7 @@ public class APEXArray extends APEXObject{
 
 
 
-	public void aput(int index, Expression val, VM vm)
+	public void aput(APEXStatement s, int index, Expression val, VM vm)
 	{
 		elements.put(index, val.clone());
 		aputHistory.add(new AputHistory(Expression.newLiteral("I", ""+index), val.clone(), true));
@@ -89,7 +89,7 @@ public class APEXArray extends APEXObject{
 		}
 		if (isFromBitmap)
 		{
-			vm.bitmapAccess.add(new BitmapAccess("set_aput", "aput", 
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "set_aput", "aput", 
 					Arrays.asList(
 							this.reference, 
 							Expression.newLiteral("I", ""+index),
@@ -98,20 +98,20 @@ public class APEXArray extends APEXObject{
 		}
 	}
 	
-	public void aput(Expression index, Expression val, VM vm)
+	public void aput(APEXStatement s, Expression index, Expression val, VM vm)
 	{
 		if (val.toString().contains("getPixel"))
 			this.isFromBitmap = true;
 		if (index.isLiteral() && !index.isSymbolic)
 		{
-			aput(Arithmetic.parseInt(index.children.get(0).root), val, vm);
+			aput(s, Arithmetic.parseInt(index.children.get(0).root), val, vm);
 		}
 		else
 		{
 			aputHistory.add(new AputHistory(index.clone(), val.clone(), false));
 			if (isFromBitmap)
 			{
-				vm.bitmapAccess.add(new BitmapAccess("set_aput", "aput", 
+				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "set_aput", "aput", 
 						Arrays.asList(this.reference, index, val )));
 			}
 		}

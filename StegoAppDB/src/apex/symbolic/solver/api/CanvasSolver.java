@@ -2,7 +2,7 @@ package apex.symbolic.solver.api;
 
 import java.util.List;
 
-import apex.code_wrappers.APEXStatement;
+import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject;
 import apex.symbolic.Expression;
 import apex.symbolic.MethodContext;
@@ -40,7 +40,7 @@ public class CanvasSolver extends SolverInterface{
 				if (canvas.canvas_bitmapRef!=null)
 				{
 					APEXObject dst = vm.heap.get(canvas.canvas_bitmapRef.getObjID());
-					BitmapAccess access = new BitmapAccess();
+					BitmapAccess access = new BitmapAccess(s.getUniqueID());
 					access.action = "set_canvas_drawBitmap";
 					access.canvas_draw_bitmap = bmp.reference;
 					for (Expression p : params)
@@ -91,7 +91,7 @@ public class CanvasSolver extends SolverInterface{
 					access.right = right;
 					access.bottom = bottom;*/
 					dst.bitmapHistory.add(access);
-					vm.bitmapAccess.add(new BitmapAccess("canvas_drawBitmap", invokeSig, params));
+					vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "canvas_drawBitmap", invokeSig, params));
 				}
 			}
 		}
@@ -104,7 +104,7 @@ public class CanvasSolver extends SolverInterface{
 				if (canvas.bitmapReference!=null)
 				{
 					APEXObject dst = vm.heap.get(canvas.canvas_bitmapRef.getObjID());
-					BitmapAccess a = new BitmapAccess();
+					BitmapAccess a = new BitmapAccess(s.getUniqueID());
 					a.action = "set_canvas_drawText";
 					for (Expression p : params)
 					{
@@ -130,7 +130,7 @@ public class CanvasSolver extends SolverInterface{
 					a.top = origin[1];*/
 					
 					dst.bitmapHistory.add(a);
-					vm.bitmapAccess.add(new BitmapAccess("canvas_drawText", invokeSig, params));
+					vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "canvas_drawText", invokeSig, params));
 
 				}
 			}
@@ -144,12 +144,12 @@ public class CanvasSolver extends SolverInterface{
 				if (canvas.canvas_bitmapRef!=null)
 				{
 					APEXObject dst = vm.heap.get(canvas.canvas_bitmapRef.getObjID());
-					BitmapAccess a = new BitmapAccess();
+					BitmapAccess a = new BitmapAccess(s.getUniqueID());
 					a.action = "set_canvas_"+invokeSig.substring(invokeSig.indexOf("draw"), invokeSig.indexOf("("));
 					for (Expression param : params)
 						a.params.add(param.clone());
 					dst.bitmapHistory.add(a);
-					vm.bitmapAccess.add(new BitmapAccess(a.action, invokeSig, params));
+					vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), a.action, invokeSig, params));
 
 				}
 			}
