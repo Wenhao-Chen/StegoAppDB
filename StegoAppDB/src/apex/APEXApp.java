@@ -25,7 +25,7 @@ import util.P;
 
 public class APEXApp {
 
-	public static final File defaultDecodedDir = new File("C:/workspace/app_analysis/decoded");
+	public static File defaultDecodedDir = new File("C:/workspace/app_analysis/decoded");
 	
 	public File apk, outDir, manifestF, resDir, smaliDir, backupDir;
 	public List<File> otherSmaliDirs;
@@ -33,7 +33,7 @@ public class APEXApp {
 	public String packageName;
 	public Document manifest;
 	public static boolean justDecode = false;
-	
+	public static boolean backup = false;
 	public static boolean verbose = false;
 	
 	public APEXApp(File f)
@@ -67,7 +67,6 @@ public class APEXApp {
 		if (forceDecode || !outDir.exists())
 		{
 			Apktool.decode(apk, outDir);
-			shouldBackup = true;
 		}
 		else if (verbose)
 		{
@@ -86,7 +85,7 @@ public class APEXApp {
 			// save backup smali
 			backupDir = new File(outDir, "backup");
 			backupDir.mkdirs();
-			if (shouldBackup)
+			if (backup)
 				backupSmali();
 			
 			// parse smali and XMLs
@@ -176,14 +175,15 @@ public class APEXApp {
 				parseSmali(ff);
 			return;
 		}
-		if (!f.getName().endsWith(".smali"))
+		if (f.getName().endsWith(".smali"))
 		{
-			P.e("Parsing smali files but found this: " + f.getAbsolutePath());
-			System.exit(1);
+			APEXClass c = new APEXClass(f, this);
+			classes.put(c.dexName, c);
 		}
+		else
+			P.e("Parsing smali files but found this: " + f.getAbsolutePath());
+
 		
-		APEXClass c = new APEXClass(f, this);
-		classes.put(c.dexName, c);
 	}
 	
 	
@@ -195,6 +195,8 @@ public class APEXApp {
 	
 	private void parseManifest()
 	{
+		if (manifestF == null || !manifestF.exists() || manifestF.length()==0)
+			return;
 		try
 		{
 			manifest = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(manifestF);

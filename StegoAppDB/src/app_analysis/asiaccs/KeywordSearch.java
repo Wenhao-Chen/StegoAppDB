@@ -6,11 +6,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -59,7 +59,8 @@ public class KeywordSearch {
 			alreadyDone.add(apkName);
 			info.put(apkName, s);
 		});
-		TreeSet<File> apks = Template.orderFiles(Template.getAPKs());
+		//TreeSet<File> apks = Template.orderFiles(Template.getStegoAPKs());
+		List<File> apks = Template.getStegoAPKs();
 		int total = apks.size(), i = 1;
 		for (File apk : apks)
 		{

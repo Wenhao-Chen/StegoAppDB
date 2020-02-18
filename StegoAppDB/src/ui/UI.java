@@ -49,7 +49,7 @@ public class UI {
         final int width = screenSize.width - left - right-20;
         final int height = screenSize.height - top - bottom-200;
         frame.setMinimumSize(new Dimension(width, height));
-        frame.setLocation(screenSize.width + 10, 100);
+        //frame.setLocation(screenSize.width + 10, 100);
 		frame.add(panel);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);

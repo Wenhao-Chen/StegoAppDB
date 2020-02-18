@@ -4,13 +4,18 @@ import apex.symbolic.Expression;
 
 public class Arithmetic {
 
+	// if 'lazy' set to true, every arithmetic operation will be a formula
+	// even if both operands are literal values. For Example:
+	// if v0 is literal value 0x1, v1 is literal value 0x2
+	// add v0, v1 in lazy mode returns: add 0x1 0x1, while not-lazy mode returns: 0x2
+	public static boolean lazy = false;
 	
 	public static Expression add(Expression vA, Expression vB, String type)
 	{
 		vA.type = type;
 		vB.type = type;
 		
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;
@@ -38,7 +43,7 @@ public class Arithmetic {
 		vA.type = type;
 		vB.type = type;
 		
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;
@@ -66,7 +71,7 @@ public class Arithmetic {
 		vA.type = type;
 		vB.type = type;
 		
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;
@@ -94,7 +99,7 @@ public class Arithmetic {
 		vA.type = type;
 		vB.type = type;
 		
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;
@@ -124,7 +129,7 @@ public class Arithmetic {
 		vA.type = type;
 		vB.type = type;
 		
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;

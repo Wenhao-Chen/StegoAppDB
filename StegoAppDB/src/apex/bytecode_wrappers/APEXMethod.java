@@ -256,7 +256,15 @@ public class APEXMethod {
 				while (!line.equals(endLabel))
 				{
 					data.add(line);
-					line = body.get(++i);
+					try
+					{
+						line = body.get(++i);
+					}
+					catch (Exception e)
+					{
+						P.e("error when reading "+c.smaliF.getAbsolutePath());
+						System.exit(1);
+					}
 				}
 				data.add(line);
 				supplementalDataBlocks.add(new SupplementalData(label, data));

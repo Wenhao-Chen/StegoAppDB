@@ -83,6 +83,7 @@ public class APEXArray extends APEXObject{
 	{
 		elements.put(index, val.clone());
 		aputHistory.add(new AputHistory(Expression.newLiteral("I", ""+index), val.clone(), true));
+		//P.p("[aput history lit] "+index+" "+val.toString());
 		if (val.related_to_pixel)
 		{
 			this.isFromBitmap = true;
@@ -109,6 +110,7 @@ public class APEXArray extends APEXObject{
 		else
 		{
 			aputHistory.add(new AputHistory(index.clone(), val.clone(), false));
+			//P.p("[aput history sym] "+index.toString()+" "+val.toString());
 			if (isFromBitmap)
 			{
 				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "set_aput", "aput", 
@@ -230,11 +232,13 @@ public class APEXArray extends APEXObject{
 			APEXArray arr = vm.createNewArray(eleType, this.objID+"["+index.toString()+"]", null, s.getUniqueID()+" "+s.smali);
 			arr.isSymbolic = true;
 			arr.reference.isSymbolic = true;
+			this.aput(s, index, arr.reference, vm);
 			return arr.reference;
 		}
 		else
 		{
 			APEXObject obj = vm.createNewObject(eleType, this.objID+"["+index.toString()+"]", s.getUniqueID()+" "+s.smali, true);
+			this.aput(s, index, obj.reference, vm);
 			return obj.reference;
 		}
 	}

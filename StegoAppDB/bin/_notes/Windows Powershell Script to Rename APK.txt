@@ -1,0 +1,15 @@
+/*
+Instruction: go to the directory containing the APK files and execute the following
+*/
+
+Get-ChildItem -Filter *.apk |
+Foreach-Object {
+  $name = $_.FullName
+  $res = (aapt dump badging $name | findstr -i "package: name='.+'")
+  $left = $res.Substring($res.IndexOf('''')+1)
+  $left = $left.Substring(0, $left.IndexOf(''''))+".apk"
+  try {
+    Rename-Item -ErrorAction 'Stop' -Path $name -NewName $left
+  }
+  catch [System.IO.IOException]{"Can't rename "+$name+" to "+$left}
+}

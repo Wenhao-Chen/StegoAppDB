@@ -35,7 +35,8 @@ public class ExtractExpressionTrees {
 		File alreadyDoneF = new File(treeRoot, "AppsAlreadyExtracted.txt");
 		File notesRoot = new File(Template.notesDir, "Notes");
 		//Set<String> alreadyDone = new HashSet<>(F.readLinesWithoutEmptyLines(alreadyDoneF));
-		TreeSet<File> apks = Template.orderFiles(Template.getStegoAPKs());
+		//TreeSet<File> apks = Template.orderFiles(Template.getStegoAPKs());
+		List<File> apks = Template.getStegoAPKs();
 		int total = apks.size(), i = 1;
 		for (File apk : apks)
 		{
@@ -48,7 +49,7 @@ public class ExtractExpressionTrees {
 			if (notesF.exists())
 			{
 				int countTrees = appTreeDir.list().length/5;
-				P.p(apk.getName()+": " + countTrees + " " + F.readFirstLine(notesF));
+				P.p(apk.getName()+"\t" + countTrees + "\t" + String.join("\t", F.readFirstLine(notesF).split(" ")));
 				continue;
 			}
 			
@@ -64,7 +65,7 @@ public class ExtractExpressionTrees {
 	
 	static Set<String> tempOperators = new HashSet<>();
 	static Set<String> knownOperators = new HashSet<>(Arrays.asList(
-			">>>", ">>","&", "|", "<<"
+			">>>", ">>","&", "|", "<<", "+", "-"
 			));
 
 	public static boolean[] testExtract(File expDir, APEXApp app)

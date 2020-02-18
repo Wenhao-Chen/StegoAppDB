@@ -167,6 +167,7 @@ public class VM {
 				continue;
 			}
 			APEXStatement s = mc.m.statements.get(mc.stmtIndex++);
+			//P.p("[exec_log] "+s.index);
 			ui_execLog.newLine(mc.m.signature+" " + s.index+"  "+s.smali);
 			executeStatement(s);
 			
@@ -188,7 +189,6 @@ public class VM {
 		if (s.block.statements.get(0)==s)
 		{
 			String label = s.m.signature+s.block.getLabelString();
-			branchVisitTimes.put(label, branchVisitTimes.getOrDefault(label, 0)+1);
 			if (branchVisitTimes.get(label)>maxBranchVisitTime)
 			{
 				ui_execLog.newLine("stopping branch "+s.getUniqueID());
@@ -794,10 +794,12 @@ public class VM {
 				P.pause();
 			}
 			APEXArray arr = (APEXArray) arrObj;
-				/*
-				 * if (arr.isFromBitmap) {
-				 * P.p("aget from pixel array: "+s.getUniqueID()+"\n\t"+s.smali); P.pause(); }
-				 */
+			
+			P.p("[aget]");
+			P.p("    "+arr.reference.toString());
+			P.p("    "+mc.read(args[2]).toString());
+			if (s.index == 77 || s.index == 78)
+				P.pause();
 			Expression ele = arr.aget(mc.read(args[2]), this, s);
 			mc.assign(args[0], ele);
 			break;
@@ -825,6 +827,11 @@ public class VM {
 			}
 			APEXArray arr = (APEXArray) obj;
 			arr.aput(s, mc.read(args[2]), mc.read(args[0]), this);
+			P.p("[aput] "+mc.read(args[0]).toString());
+			P.p("    "+arr.reference.toString());
+			P.p("    "+mc.read(args[2]).toString());
+			if (s.index == 67)
+				P.pause();
 			break;
 		}
 		case "iget"                    : 	// vA, vB, field@CCCC
@@ -1447,8 +1454,7 @@ public class VM {
 		jumpCond.note = s.getUniqueID();
 		
 		//P.p("  [symbolic] choosing flow at "+s.getUniqueID());
-		
-		if (!visitedBranches.contains(s)) // TODO: create symbolic path if only s was never visited???
+		if (!visitedBranches.contains(s))
 		{
 			//P.p("    [Assuming condition] "+flowCond.toString()+" "+s.getUniqueID());
 			pathCondition.add(flowCond);

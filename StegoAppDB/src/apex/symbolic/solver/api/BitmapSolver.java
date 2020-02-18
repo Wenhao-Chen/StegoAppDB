@@ -101,6 +101,8 @@ public class BitmapSolver extends SolverInterface{
 				Expression x = Arithmetic.rem(aput.index, width, "I");
 				Expression y = Arithmetic.div(aput.index, width, "I");
 				bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
+				P.p("[set pixel]");
+				P.p("   "+aput.val.toString());
 				List<Expression> pp = new ArrayList<>(Arrays.asList(bitmap.reference, x, y, aput.val));
 				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, pp));
 			}
@@ -343,6 +345,34 @@ public class BitmapSolver extends SolverInterface{
 			bitmap.bitmapHistory.add(a);
 			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "getPixelsToBuffer", invokeSig, params));
 		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->array()[I"))
+		{
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			vm.createSymbolicMethodReturn("[I", invokeSig, params, s);
+			if (buffer.isFromBitmap)
+			{
+				APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
+				buffer.arrayReference = arr.reference;
+				arr.isFromBitmap = true;
+				arr.bitmapReference = buffer.bitmapReference.clone();
+			}
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/ByteBuffer;->array()[B"))
+		{
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			vm.createSymbolicMethodReturn("[I", invokeSig, params, s);
+			if (buffer.isFromBitmap)
+			{
+				APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
+				buffer.arrayReference = arr.reference;
+				arr.isFromBitmap = true;
+				arr.bitmapReference = buffer.bitmapReference.clone();
+			}
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;") || invokeSig.contentEquals("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;"))
+		{
+			vm.recentResult = params.get(0).clone();
+		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->copyPixelsFromBuffer(Ljava/nio/Buffer;)V"))
 		{
 			APEXObject bitmap = vm.heap.get(params.get(0).getObjID());
@@ -354,10 +384,10 @@ public class BitmapSolver extends SolverInterface{
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
 			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixelsToBuffer", invokeSig, params));
-			
 			if (buffer.arrayReference!=null)
 			{
 				APEXArray arr = (APEXArray) vm.heap.get(buffer.arrayReference.getObjID());
+				//P.p("copying from buffer. array ref: "+arr.reference.toString());
 				if (bitmap.width==null)
 				{
 					bitmap.width = arr.type.equals("[B")?
@@ -381,6 +411,7 @@ public class BitmapSolver extends SolverInterface{
 						Expression x = Arithmetic.rem(aput.index, bitmap.width, "I");
 						Expression y = Arithmetic.div(aput.index, bitmap.width, "I");
 						bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
+						//P.p("  new bitmap history: setPixel "+x+" "+y+aput.val);
 						vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, Arrays.asList(bitmap.reference, x, y, aput.val)));
 					}
 					
@@ -484,6 +515,53 @@ public class BitmapSolver extends SolverInterface{
 			}
 			else
 				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+		}
+		else if (invokeSig.contentEquals("Landroid/graphics/Color;->colorToHSV(I[F)V"))
+		{
+			// this function turns an ARGB color value (integer) into a 3-element float array which holds the HSV values of this color
+			if (params.get(1).getObjID()==null)
+			{
+				vm.shouldStop = true;
+				vm.crashed = true;
+				return;
+			}
+			APEXArray arr = (APEXArray) vm.heap.get(params.get(1).getObjID());
+			List<Expression> plist = new ArrayList<>();
+			plist.add(params.get(0).clone());
+			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToH(I)F", plist, s);
+			arr.aput(s, 0, vm.recentResult, vm);
+			P.p("[H]");
+			P.p(vm.recentResult.toString());
+			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToS(I)F", plist, s);
+			arr.aput(s, 1, vm.recentResult, vm);
+			P.p("[S]");
+			P.p(vm.recentResult.toString());
+			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToV(I)F", plist, s);
+			arr.aput(s, 2, vm.recentResult, vm);
+			P.p("[V]");
+			P.p(vm.recentResult.toString());
+			P.pause();
+		}
+		else if (invokeSig.contentEquals("Landroid/graphics/Color;->HSVToColor([F)I"))
+		{
+			if (params.get(0).getObjID()==null)
+			{
+				vm.shouldStop = true;
+				vm.crashed = true;
+				return;
+			}
+			APEXArray arr = (APEXArray) vm.heap.get(params.get(0).getObjID());
+			Expression H = arr.aget(Expression.newLiteral("I", "0"), vm, s);
+			Expression S = arr.aget(Expression.newLiteral("I", "1"), vm, s);
+			Expression V = arr.aget(Expression.newLiteral("I", "2"), vm, s);
+			params.remove(0);
+			params.add(H);
+			params.add(S);
+			params.add(V);
+			vm.createSymbolicMethodReturn("I", "Landroid/graphics/Color;->HSVToColor(FFF)I", params, s);
+			P.p("[Color]");
+			P.p(vm.recentResult.toString());
+			P.pause();
 		}
 		else if (invokeSig.equals("Landroid/graphics/Matrix;->postScale(FF)Z"))
 		{

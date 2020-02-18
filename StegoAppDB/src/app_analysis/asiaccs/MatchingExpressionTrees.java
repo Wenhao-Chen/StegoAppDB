@@ -9,7 +9,7 @@ public class MatchingExpressionTrees {
 
 	// This function checks whether the given expression tree:
 	// contains a subtree that represents the return value of Bitmap.getPixel
-	static boolean HasGetPixel(Expression exp)
+	public static boolean HasGetPixel(Expression exp)
 	{
 		if (exp == null)
 			return false;
@@ -29,7 +29,7 @@ public class MatchingExpressionTrees {
 	// This function checks whether the given expression:
 	// contains subtree that represents the return value of Bitmap.getPixel()
 	// and the given expression x and y are identical to the x,y subtrees in the getPixel() parameters
-	static boolean HasGetPixel(Expression exp, Expression x, Expression y)
+	public static boolean HasGetPixel(Expression exp, Expression x, Expression y)
 	{
 		if (exp == null)
 			return false;
@@ -49,7 +49,7 @@ public class MatchingExpressionTrees {
 	// This function returns the value of the node which is the immediate parent
 	// of the "return-getPixel()" subtree.
 	// Returns empty string if no such subtree is found
-	static List<String> getOperatorForGetPixelValue(Expression exp, Expression x, Expression y)
+	public static List<String> getOperatorForGetPixelValue(Expression exp, Expression x, Expression y)
 	{
 		List<String> res = new ArrayList<>();
 		if (exp == null)
@@ -59,7 +59,8 @@ public class MatchingExpressionTrees {
 		for (Expression child : exp.children)
 			if (child.root.contentEquals("return") && child.children.size() == 4
 					&& child.children.get(0).root.contentEquals("Landroid/graphics/Bitmap;->getPixel(II)I")
-					&& child.children.get(2).equals(x) && child.children.get(3).equals(y))
+					// && child.children.get(2).equals(x) && child.children.get(3).equals(y)
+					)
 				res.add(exp.root);
 
 		for (Expression child : exp.children)
@@ -73,7 +74,7 @@ public class MatchingExpressionTrees {
 	// This function recursively checks the subtrees of given expression 'exp'
 	// and replaces the subtrees that have the "return-getPixel()-obj-x-y" pattern
 	// Only the subtrees that have the identical x,y parameters with the given x,y are replaced.
-	static void trimGetPixel(Expression exp, Expression x, Expression y)
+	public static void trimGetPixel(Expression exp, Expression x, Expression y)
 	{
 		if (exp == null)
 			return;

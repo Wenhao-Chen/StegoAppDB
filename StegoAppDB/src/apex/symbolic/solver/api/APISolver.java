@@ -46,26 +46,32 @@ public class APISolver {
 		solvers.put("Landroid/graphics/Bitmap;->createBitmap([IIILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;", bitmapSolver);
 		solvers.put("Landroid/graphics/Bitmap;->createScaledBitmap(Landroid/graphics/Bitmap;IIZ)Landroid/graphics/Bitmap;", bitmapSolver);
 		solvers.put("Landroid/graphics/Bitmap;->recycle()V", bitmapSolver);
+		solvers.put("Ljava/nio/IntBuffer;->array()[I", bitmapSolver);
+		solvers.put("Ljava/nio/ByteBuffer;->array()[B", bitmapSolver);
+		solvers.put("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;", bitmapSolver);
+		solvers.put("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;", bitmapSolver);
 		solvers.put("Landroid/graphics/Matrix;->postScale(FF)Z", bitmapSolver);
 		
 		solvers.put("Landroid/graphics/Color;->argb(IIII)I", bitmapSolver);
 		solvers.put("Landroid/graphics/Color;->red(I)I", bitmapSolver);
 		solvers.put("Landroid/graphics/Color;->green(I)I", bitmapSolver);
 		solvers.put("Landroid/graphics/Color;->blue(I)I", bitmapSolver);
+		solvers.put("Landroid/graphics/Color;->colorToHSV(I[F)V", bitmapSolver);
+		solvers.put("Landroid/graphics/Color;->HSVToColor([F)I", bitmapSolver);
 		
 		solvers.put("Landroid/graphics/Canvas;-><init>(Landroid/graphics/Bitmap;)V", canvasSolver);
 		solvers.put("Landroid/graphics/Canvas;->setBitmap(Landroid/graphics/Bitmap;)V", canvasSolver);
 		solvers.put("Landroid/graphics/Rect;-><init>(IIII)V", canvasSolver);
 		
-		solvers.put("Ljava/lang/String;->equals(Ljava/lang/Object;)Z", stringSolver);
-		solvers.put("Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;", stringSolver);
-		solvers.put("Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V", stringSolver);
-		solvers.put("Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;", stringSolver);
-		solvers.put("Ljava/lang/StringBuilder;->toString()Ljava/lang/String;", stringSolver);
-		solvers.put("Ljava/lang/String;->isEmpty()Z", stringSolver);
-		solvers.put("Ljava/lang/String;->charAt(I)C", stringSolver);
-		solvers.put("Ljava/lang/String;->length()I", stringSolver);
-		solvers.put("Ljava/lang/String;->getBytes()[B", stringSolver);
+		//solvers.put("Ljava/lang/String;->equals(Ljava/lang/Object;)Z", stringSolver);
+		//solvers.put("Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;", stringSolver);
+		//solvers.put("Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V", stringSolver);
+		//solvers.put("Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;", stringSolver);
+		//solvers.put("Ljava/lang/StringBuilder;->toString()Ljava/lang/String;", stringSolver);
+		//solvers.put("Ljava/lang/String;->isEmpty()Z", stringSolver);
+		//solvers.put("Ljava/lang/String;->charAt(I)C", stringSolver);
+		//solvers.put("Ljava/lang/String;->length()I", stringSolver);
+		//solvers.put("Ljava/lang/String;->getBytes()[B", stringSolver);
 		
 		solvers.put("Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I", wrapperSolver);
 		solvers.put("Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;", wrapperSolver);

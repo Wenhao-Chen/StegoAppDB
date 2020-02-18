@@ -265,15 +265,15 @@ public class HelperUI extends JPanel{
 			if (SwingUtilities.isRightMouseButton(e))
 			{
 				int row = getClosestRowForLocation(e.getX(), e.getY());
-				P.p("right clicking row "+row);
+				//P.p("right clicking row "+row);
 				boolean contains = false;
 				for (int i : getSelectionRows())
 				if (i==row) {contains = true; break;}
 				
 				if (!contains)
 					setSelectionRow(row);
-				else
-					P.p("contains");
+				//else
+				//	P.p("contains");
 				Object obj = getPathForRow(row).getLastPathComponent();
 				if (obj instanceof MethodNode)
 					pop.show(e.getComponent(), e.getX(), e.getY());
@@ -514,7 +514,7 @@ public class HelperUI extends JPanel{
 			addTreeSelectionListener(this);
 			
 			// Setting initial tree selection
-			this.setSelectionPath(new TreePath(root.findFirst("alexparunov").getPath()));
+			this.setSelectionPath(new TreePath(root.findFirst("au.com.tyo").getPath()));
 			
 			this.addMouseListener(this);
 			
@@ -627,7 +627,7 @@ public class HelperUI extends JPanel{
 		{
 			super(f.getName());
 			this.f = f;
-			if (f.isDirectory())
+			if (f.isDirectory() && !f.getName().contentEquals("instrumented"))
 			for (File ff : f.listFiles())
 				add(new FileNode(ff));
 		}

@@ -67,6 +67,8 @@ public class StringSolver extends SolverInterface{
 				Expression prevAppend = sb.stringBuilderAppendHistory.get(sb.stringBuilderAppendHistory.size()-1);
 				if (prevAppend.isLiteral())
 					prevAppend.children.get(0).root += s1.getLiteralValue();
+				else
+					sb.stringBuilderAppendHistory.add(s1.clone());
 			}
 			vm.recentResult = sb.reference;
 		}
@@ -145,6 +147,7 @@ public class StringSolver extends SolverInterface{
 			}
 			else
 				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			P.p("String.length() returns "+vm.recentResult.toString());
 		}
 		else if (invokeSig.equals("Ljava/lang/String;->getBytes()[B"))
 		{

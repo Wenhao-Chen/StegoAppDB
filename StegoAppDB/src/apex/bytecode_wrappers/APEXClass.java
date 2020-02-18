@@ -218,6 +218,7 @@ public class APEXClass {
 			add("Lorg/intellij/lang/*");
 			add("Lorg/jetbrains/*");
 			add("Lbutterknife/*");
+			add("Lcom/cinema/zz3/LoginActivity;"); // this is a malware class, there is a deep call back loop in here
 	}};
 	
 	public boolean isLibraryClass()
