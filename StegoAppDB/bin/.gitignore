@@ -1,6 +1,5 @@
-/database/
-/stego/
-/ui/
-/util/
 /app_analysis/
+/ui/
+/crawling/
+/util/
 /apex/

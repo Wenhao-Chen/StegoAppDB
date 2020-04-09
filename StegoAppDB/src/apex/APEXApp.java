@@ -62,9 +62,10 @@ public class APEXApp {
 			outDir = new File(defaultDecodedDir, f.getName());
 		}
 		
+		
 		boolean shouldBackup = false;
 		// run apktool if necessary
-		if (forceDecode || !outDir.exists())
+		if (forceDecode || !outDir.exists() || f.lastModified() > outDir.lastModified())
 		{
 			Apktool.decode(apk, outDir);
 		}

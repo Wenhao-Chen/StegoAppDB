@@ -10,10 +10,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import database.CSSM;
-import stego.StegoStats;
-import stego.apps.Pictograph;
-import stego.apps.passlok.Passlok;
-import stego.apps.pixelknot.PixelKnot;
+import database.stego.StegoStats;
+import database.stego.apps.Pictograph;
+import database.stego.apps.passlok.Passlok;
+import database.stego.apps.pixelknot.PixelKnot;
 import util.Exif;
 import util.F;
 import util.Images;

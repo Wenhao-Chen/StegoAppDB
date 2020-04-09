@@ -6,12 +6,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import stego.apps.MobiStego;
-import stego.apps.Pictograph;
-import stego.apps.PocketStego;
-import stego.apps.SteganographyM;
-import stego.apps.passlok.Passlok;
-import stego.apps.pixelknot.PixelKnot;
+import database.stego.apps.MobiStego;
+import database.stego.apps.Pictograph;
+import database.stego.apps.PocketStego;
+import database.stego.apps.SteganographyM;
+import database.stego.apps.passlok.Passlok;
+import database.stego.apps.pixelknot.PixelKnot;
 import ui.ProgressUI;
 
 @SuppressWarnings("serial")

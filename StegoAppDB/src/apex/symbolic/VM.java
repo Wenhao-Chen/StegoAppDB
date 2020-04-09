@@ -24,7 +24,7 @@ import apex.symbolic.solver.Condition;
 import apex.symbolic.solver.Logic;
 import apex.symbolic.solver.api.APISolver;
 import apex.symbolic.solver.api.BitmapSolver;
-import app_analysis.ExecutionEngine;
+import app_analysis.old.ExecutionEngine;
 import ui.ProgressUI;
 import util.Dalvik;
 import util.F;
@@ -189,7 +189,7 @@ public class VM {
 		if (s.block.statements.get(0)==s)
 		{
 			String label = s.m.signature+s.block.getLabelString();
-			if (branchVisitTimes.get(label)>maxBranchVisitTime)
+			if (branchVisitTimes.getOrDefault(label,0)>maxBranchVisitTime)
 			{
 				ui_execLog.newLine("stopping branch "+s.getUniqueID());
 				shouldStop = true;
@@ -795,11 +795,10 @@ public class VM {
 			}
 			APEXArray arr = (APEXArray) arrObj;
 			
-			P.p("[aget]");
-			P.p("    "+arr.reference.toString());
-			P.p("    "+mc.read(args[2]).toString());
-			if (s.index == 77 || s.index == 78)
-				P.pause();
+//			P.p("[aget]");
+//			P.p("    "+arr.reference.toString());
+//			P.p("    "+mc.read(args[2]).toString());
+
 			Expression ele = arr.aget(mc.read(args[2]), this, s);
 			mc.assign(args[0], ele);
 			break;
@@ -827,11 +826,10 @@ public class VM {
 			}
 			APEXArray arr = (APEXArray) obj;
 			arr.aput(s, mc.read(args[2]), mc.read(args[0]), this);
-			P.p("[aput] "+mc.read(args[0]).toString());
-			P.p("    "+arr.reference.toString());
-			P.p("    "+mc.read(args[2]).toString());
-			if (s.index == 67)
-				P.pause();
+//			P.p("[aput] "+mc.read(args[0]).toString());
+//			P.p("    "+arr.reference.toString());
+//			P.p("    "+mc.read(args[2]).toString());
+
 			break;
 		}
 		case "iget"                    : 	// vA, vB, field@CCCC
