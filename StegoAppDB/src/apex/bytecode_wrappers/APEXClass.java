@@ -223,6 +223,10 @@ public class APEXClass {
 	
 	public boolean isLibraryClass()
 	{
+		if (dexName.startsWith("Lcom/facebook/fb_hack"))
+			return false;
+		if (dexName.startsWith("Lorg/apache/stegocasket"))
+			return false;
 		if (app.packageName.equals("com.amaze.filemanager"))
 		{
 			return !dexName.startsWith("Lcom/amaze/filemanager");

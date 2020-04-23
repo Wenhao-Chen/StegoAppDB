@@ -101,8 +101,8 @@ public class BitmapSolver extends SolverInterface{
 				Expression x = Arithmetic.rem(aput.index, width, "I");
 				Expression y = Arithmetic.div(aput.index, width, "I");
 				bitmap.bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, aput.val.clone()));
-				P.p("[set pixel]");
-				P.p("   "+aput.val.toString());
+				//P.p("[set pixel]");
+				//P.p("   "+aput.val.toString());
 				List<Expression> pp = new ArrayList<>(Arrays.asList(bitmap.reference, x, y, aput.val));
 				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "setPixel", invokeSig, pp));
 			}
@@ -314,7 +314,10 @@ public class BitmapSolver extends SolverInterface{
 				vm.recentResult = bitmap.bitmapWidth.clone();
 			else
 			{
-				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+				if (vm.allocateConcreteBitmap)
+					vm.recentResult = Expression.newLiteral("I", "30");
+				else
+					vm.createSymbolicMethodReturn("I", invokeSig, params, s);
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->getHeight()I"))
@@ -328,8 +331,13 @@ public class BitmapSolver extends SolverInterface{
 			APEXObject bitmap = vm.heap.get(params.get(0).getObjID());
 			if (bitmap.bitmapHeight != null)
 				vm.recentResult = bitmap.bitmapHeight.clone();
-			else
-				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			else {
+				if (vm.allocateConcreteBitmap)
+					vm.recentResult = Expression.newLiteral("I", "30");
+				else
+					vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			}
+				
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->copyPixelsToBuffer(Ljava/nio/Buffer;)V"))
 		{
@@ -344,34 +352,6 @@ public class BitmapSolver extends SolverInterface{
 				a.params.add(p.clone());
 			bitmap.bitmapHistory.add(a);
 			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "getPixelsToBuffer", invokeSig, params));
-		}
-		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->array()[I"))
-		{
-			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
-			vm.createSymbolicMethodReturn("[I", invokeSig, params, s);
-			if (buffer.isFromBitmap)
-			{
-				APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
-				buffer.arrayReference = arr.reference;
-				arr.isFromBitmap = true;
-				arr.bitmapReference = buffer.bitmapReference.clone();
-			}
-		}
-		else if (invokeSig.contentEquals("Ljava/nio/ByteBuffer;->array()[B"))
-		{
-			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
-			vm.createSymbolicMethodReturn("[I", invokeSig, params, s);
-			if (buffer.isFromBitmap)
-			{
-				APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
-				buffer.arrayReference = arr.reference;
-				arr.isFromBitmap = true;
-				arr.bitmapReference = buffer.bitmapReference.clone();
-			}
-		}
-		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;") || invokeSig.contentEquals("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;"))
-		{
-			vm.recentResult = params.get(0).clone();
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->copyPixelsFromBuffer(Ljava/nio/Buffer;)V"))
 		{
@@ -530,17 +510,17 @@ public class BitmapSolver extends SolverInterface{
 			plist.add(params.get(0).clone());
 			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToH(I)F", plist, s);
 			arr.aput(s, 0, vm.recentResult, vm);
-			P.p("[H]");
-			P.p(vm.recentResult.toString());
+			//P.p("[H]");
+			//P.p(vm.recentResult.toString());
 			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToS(I)F", plist, s);
 			arr.aput(s, 1, vm.recentResult, vm);
-			P.p("[S]");
-			P.p(vm.recentResult.toString());
+			//P.p("[S]");
+			//P.p(vm.recentResult.toString());
 			vm.createSymbolicMethodReturn("F", "Landroid/graphics/Color;->colorToV(I)F", plist, s);
 			arr.aput(s, 2, vm.recentResult, vm);
-			P.p("[V]");
-			P.p(vm.recentResult.toString());
-			P.pause();
+			//P.p("[V]");
+			//P.p(vm.recentResult.toString());
+			//P.pause();
 		}
 		else if (invokeSig.contentEquals("Landroid/graphics/Color;->HSVToColor([F)I"))
 		{
@@ -559,9 +539,9 @@ public class BitmapSolver extends SolverInterface{
 			params.add(S);
 			params.add(V);
 			vm.createSymbolicMethodReturn("I", "Landroid/graphics/Color;->HSVToColor(FFF)I", params, s);
-			P.p("[Color]");
-			P.p(vm.recentResult.toString());
-			P.pause();
+			////P.p("[Color]");
+			//P.p(vm.recentResult.toString());
+			//P.pause();
 		}
 		else if (invokeSig.equals("Landroid/graphics/Matrix;->postScale(FF)Z"))
 		{
@@ -581,7 +561,9 @@ public class BitmapSolver extends SolverInterface{
 		int width = 30, height = 20;
 		obj.bitmapWidth = Expression.newLiteral("I", ""+width);
 		obj.bitmapHeight = Expression.newLiteral("I", ""+height);
-		obj.concreteBitmap = new Expression[height][width];
+		//P.p("concrete bitmap: "+obj.reference.toString());
+		//P.pause();
+		//obj.concreteBitmap = new Expression[height][width];
 		/*		for (int i = 0; i < height; i++)
 		{
 			for (int j = 0; j < width; j++)

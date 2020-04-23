@@ -46,10 +46,6 @@ public class APISolver {
 		solvers.put("Landroid/graphics/Bitmap;->createBitmap([IIILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;", bitmapSolver);
 		solvers.put("Landroid/graphics/Bitmap;->createScaledBitmap(Landroid/graphics/Bitmap;IIZ)Landroid/graphics/Bitmap;", bitmapSolver);
 		solvers.put("Landroid/graphics/Bitmap;->recycle()V", bitmapSolver);
-		solvers.put("Ljava/nio/IntBuffer;->array()[I", bitmapSolver);
-		solvers.put("Ljava/nio/ByteBuffer;->array()[B", bitmapSolver);
-		solvers.put("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;", bitmapSolver);
-		solvers.put("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;", bitmapSolver);
 		solvers.put("Landroid/graphics/Matrix;->postScale(FF)Z", bitmapSolver);
 		
 		solvers.put("Landroid/graphics/Color;->argb(IIII)I", bitmapSolver);
@@ -78,12 +74,25 @@ public class APISolver {
 		solvers.put("Ljava/lang/Integer;->intValue()I", wrapperSolver);
 		solvers.put("Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;", wrapperSolver);
 		solvers.put("Ljava/lang/Boolean;->booleanValue()Z", wrapperSolver);
+		solvers.put("Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;", wrapperSolver);
+		solvers.put("Ljava/lang/Long;->intValue()I", wrapperSolver);
 		solvers.put("Ljava/lang/Math;->ceil(D)D", wrapperSolver);
+		solvers.put("Ljava/lang/Math;->floor(D)D", wrapperSolver);
+		solvers.put("Ljava/lang/Math;->round(D)J", wrapperSolver);
+		solvers.put("Ljava/lang/Math;->cos(D)D", wrapperSolver);
 
 		solvers.put("Ljava/lang/reflect/Array;->newInstance(Ljava/lang/Class;[I)Ljava/lang/Object;", arraySolver);
 		solvers.put("Ljava/nio/ByteBuffer;->allocate(I)Ljava/nio/ByteBuffer;", arraySolver);
 		solvers.put("Ljava/nio/ByteBuffer;->array()[B", arraySolver);
+		solvers.put("Ljava/nio/ByteBuffer;->array()[B", arraySolver);
+		solvers.put("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;", arraySolver);
 		solvers.put("Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;", arraySolver);
+		solvers.put("Ljava/nio/ByteBuffer;->asIntBuffer()Ljava/nio/IntBuffer;", arraySolver);
+		
+		solvers.put("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;", arraySolver);
+		solvers.put("Ljava/nio/IntBuffer;->array()[I", arraySolver);
+		solvers.put("Ljava/nio/IntBuffer;->put([I)Ljava/nio/IntBuffer;", arraySolver);
+		solvers.put("Ljava/nio/IntBuffer;->get([I)Ljava/nio/IntBuffer;", arraySolver);
 		solvers.put("Ljava/lang/System;->arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V", arraySolver);
 		
 		solvers.put("Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V", threadSolver);

@@ -11,7 +11,6 @@ import apex.APEXApp;
 import apex.bytecode_wrappers.APEXClass;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.bytecode_wrappers.APEXStatement;
-import app_analysis.APISignatures;
 import ui.ProgressUI;
 import util.F;
 import util.P;

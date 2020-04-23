@@ -265,5 +265,29 @@ public class P {
 		return readStream(p.getErrorStream());
 	}
 	
+	
+	public static boolean isNumeric(String s) {
+		if (s == null)
+			return false;
+		try {
+			Double.parseDouble(s);
+		}
+		catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
+	
+	public static boolean isInteger(String s) {
+		if (s == null)
+			return false;
+		try {
+			Integer.parseInt(s);
+		}
+		catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
 
 }

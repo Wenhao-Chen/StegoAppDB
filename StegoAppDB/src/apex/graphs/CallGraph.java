@@ -51,6 +51,17 @@ public class CallGraph {
 	}
 	
 	// return the subgraph that contains all methods in set "sigs"
+	// and write numbers into the graph nodes
+	// and map the numbers into method signatures in the title
+	public String getDotGraphSimplified(Set<APEXMethod> from, Set<APEXMethod> to) {
+		if (vertices==null || out_edges==null)
+			updateMethodCallGraph();
+		Set<Vertex> S = new HashSet<>();
+		//TODO
+		return null;
+	}
+	
+	// return the subgraph that contains all methods in set "sigs"
 	public String getDotGraph(Set<String> sigs)
 	{
 		if (vertices==null || out_edges==null)
@@ -78,7 +89,7 @@ public class CallGraph {
 			else
 				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.signature)+"\n";
 		}
-			
+		
 		
 		for (Vertex src : S)
 		for (Vertex dst : out_edges.getOrDefault(src, new HashSet<>()))
@@ -91,6 +102,7 @@ public class CallGraph {
 		return text;
 	}
 	
+	// collect all vertexes that are connected with v
 	private void dfs(Set<Vertex> S, Vertex v)
 	{
 		if (S.contains(v))

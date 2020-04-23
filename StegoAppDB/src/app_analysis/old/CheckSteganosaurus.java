@@ -12,13 +12,12 @@ import apex.APEXApp;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.VM;
-import app_analysis.APISignatures;
-import app_analysis.Dirs;
+import app_analysis.common.Dirs;
 import util.P;
 
 public class CheckSteganosaurus {
 
-	static File apk = new File(Dirs.GithubStego, "app.steganosaurus.apk");
+	static File apk = new File(Dirs.Stego_Github, "app.steganosaurus.apk");
 	
 	static class AppProfile {
 		APEXApp app;

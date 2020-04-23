@@ -39,6 +39,10 @@ public class Graphviz {
 	{
 		return toDotGraphString(index, label, null, null, null, (String[])null);
 	}
+	public static String toDotGraphString(int index, String label, String color, String fontColor)
+	{
+		return toDotGraphString(index, label, color, fontColor, null, (String[])null);
+	}
 	
 	public static String toDotGraphString(int index, String label, String color, String fontColor, String shape, String... keywords)
 	{

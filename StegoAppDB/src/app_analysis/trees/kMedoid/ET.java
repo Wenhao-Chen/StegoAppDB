@@ -1,4 +1,4 @@
-package app_analysis.trees;
+package app_analysis.trees.kMedoid;
 
 import java.io.BufferedReader;
 import java.io.File;

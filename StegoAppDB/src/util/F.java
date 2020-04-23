@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -44,6 +45,10 @@ public class F {
 		writeObject(obj, f.getAbsolutePath());
 	}
 	
+	public static Object readObject(File f) {
+		return readObject(f.getAbsolutePath());
+	}
+	
 	public static Object readObject(String path)
 	{
 		try
@@ -54,7 +59,10 @@ public class F {
 			objectIn.close();
 			return obj;
 		}
-		catch (Exception e)
+		catch (ClassNotFoundException e) {
+			return null;
+		}
+		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
@@ -214,7 +222,11 @@ public class F {
 			e.printStackTrace();
 		}
 	}
-
+	
+	public static void copyToFolder(File from, File toDir) {
+		File to = new File(toDir, from.getName());
+		copy(from, to);
+	}
 	
 	public static void copy(File from, File to)
 	{

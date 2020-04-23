@@ -1,4 +1,4 @@
-package app_analysis.trees;
+package app_analysis.trees.kMedoid;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public class ETUtil {
 	// This function only loads apps that are confirmed to have usable expression trees
 	public static Map<File, File> getTreeDirs()
 	{
-		String tree_record_dir = "C:\\Users\\C03223-Stego2\\git\\StegoAppDB\\StegoAppDB\\src\\app_analysis\\paper2020";
+		String tree_record_dir = "C:\\Users\\C03223-Stego2\\git\\StegoAppDB\\StegoAppDB\\src\\app_analysis\\trees";
 		Map<File, File> map = new HashMap<>();
 		
 		File recordF = new File(tree_record_dir, "apps_with_good_trees");

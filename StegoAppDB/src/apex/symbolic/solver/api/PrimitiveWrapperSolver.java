@@ -18,14 +18,6 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 		if (invokeSig.equals("Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I"))
 		{
 			Expression s1 = params.get(0);
-/*			P.p("parseint");
-			APISolver.printStringInfo(s1, vm);
-			APEXObject obj = vm.heap.get("$obj_3");
-			P.p("--- obj3");
-			obj.print();
-			P.p("--- obj2");
-			vm.heap.get("$obj_2").print();
-			P.pause();*/
 			if (s1.isLiteral())
 			{
 				try
@@ -39,8 +31,14 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 					vm.shouldStop = true;
 				}
 			}
-			else
+			else {
+//				for (Expression p : params) {
+//					P.p("[p]  "+p.toString());
+//				}
+//				P.pause();
 				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			}
+				
 		}
 		else if (invokeSig.equals("Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;"))
 		{
@@ -58,7 +56,28 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 			}
 			APEXObject obj = vm.heap.get(params.get(0).getObjID());
 			if (obj.primitiveExpr != null)
-				vm.recentResult = obj.primitiveExpr;
+				vm.recentResult = obj.primitiveExpr.clone();
+			else
+				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+		}
+		else if (invokeSig.equals("Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;"))
+		{
+			Expression i = params.get(0);
+			APEXObject obj = vm.createNewObject("Ljava/lang/Long;", "wrapper", s.getUniqueID(), i.isSymbolic);
+			obj.primitiveExpr = i.clone();
+			vm.recentResult = obj.reference;
+		}
+		else if (invokeSig.equals("Ljava/lang/Long;->intValue()I")) {
+			if (params.get(0)==null || params.get(0).getObjID()==null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXObject obj = vm.heap.get(params.get(0).getObjID());
+			if (obj.primitiveExpr != null) {
+				vm.recentResult = obj.primitiveExpr.clone();
+				vm.recentResult.type = "I";
+			}
 			else
 				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
 		}
@@ -83,6 +102,38 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 			if (d.isLiteral() && !d.isSymbolic)
 			{
 				vm.recentResult = Expression.newLiteral("D", ""+Math.ceil(Arithmetic.parseDouble(d.toString())));
+			}
+			else
+				vm.createSymbolicMethodReturn("D", invokeSig, params, s);
+		}
+		else if (invokeSig.equals("Ljava/lang/Math;->floor(D)D"))
+		{
+			Expression d = params.get(0);
+			if (d.isLiteral() && !d.isSymbolic)
+			{
+				vm.recentResult = Expression.newLiteral("D", ""+Math.floor(Arithmetic.parseDouble(d.toString())));
+			}
+			else
+				vm.createSymbolicMethodReturn("D", invokeSig, params, s);
+		}
+		else if (invokeSig.equals("Ljava/lang/Math;->round(D)J"))
+		{
+			Expression d = params.get(0);
+			if (d.isLiteral() && !d.isSymbolic)
+			{
+				vm.recentResult = Expression.newLiteral("D", ""+Math.round(Arithmetic.parseDouble(d.toString())));
+			}
+			else {
+				vm.recentResult = d.clone();
+				vm.recentResult.type = "J";
+			}
+				
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/Math;->cos(D)D")) {
+			Expression d = params.get(0);
+			if (d.isLiteral() && !d.isSymbolic)
+			{
+				vm.recentResult = Expression.newLiteral("D", ""+Math.cos(Arithmetic.parseDouble(d.toString())));
 			}
 			else
 				vm.createSymbolicMethodReturn("D", invokeSig, params, s);

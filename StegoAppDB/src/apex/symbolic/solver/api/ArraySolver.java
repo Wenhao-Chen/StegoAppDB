@@ -62,7 +62,8 @@ public class ArraySolver extends SolverInterface{
 			if (buffer.isFromBitmap)
 			{
 				arr.isFromBitmap = true;
-				arr.bitmapReference = buffer.bitmapReference;
+				arr.bitmapReference = buffer.bitmapReference.clone();
+				buffer.arrayReference = arr.reference.clone();
 			}
 			vm.recentResult = arr.reference;
 		}
@@ -77,7 +78,66 @@ public class ArraySolver extends SolverInterface{
 			APEXObject buffer = vm.createNewObject("Ljava/nio/ByteBuffer;", "ByteBuffer.wrap([B)", s.getUniqueID(), false);
 			buffer.bufferLength = arr.length.clone();
 			buffer.arrayReference = arr.reference.clone();
+			if (arr.isFromBitmap) {
+				buffer.isFromBitmap = true;
+			}
 			vm.recentResult = buffer.reference;
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/ByteBuffer;->asIntBuffer()Ljava/nio/IntBuffer;")) {
+			if (params.get(0).getObjID()==null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			vm.recentResult = buffer.reference.clone();
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->array()[I"))
+		{
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			vm.createSymbolicMethodReturn("[I", invokeSig, params, s);
+			if (buffer.isFromBitmap)
+			{
+				APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
+				buffer.arrayReference = arr.reference.clone();
+				arr.isFromBitmap = true;
+				arr.bitmapReference = buffer.bitmapReference.clone();
+			}
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->get([I)Ljava/nio/IntBuffer;")) {
+			if (params.get(0).getObjID()==null || params.get(1).getObjID()==null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			// transfer data from buffer into array
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			APEXArray array = (APEXArray) vm.heap.get(params.get(1).getObjID());
+			if (buffer.isFromBitmap) {
+				array.isFromBitmap = true;
+				APEXArray arr = (APEXArray) vm.heap.get(buffer.arrayReference.getObjID());
+				array.aputHistory = arr.aputHistory;
+			}
+			vm.recentResult = buffer.reference.clone();
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->put([I)Ljava/nio/IntBuffer;")) {
+			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
+			if (params.get(1).getObjID()==null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXArray array = (APEXArray) vm.heap.get(params.get(1).getObjID());
+			buffer.arrayReference = array.reference.clone();
+			if (array.isFromBitmap) {
+				buffer.isFromBitmap = true;
+				buffer.bitmapReference = array.bitmapReference.clone();
+			}
+			vm.recentResult = buffer.reference.clone();
+		}
+		else if (invokeSig.contentEquals("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;") || 
+				invokeSig.contentEquals("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;"))
+		{
+			vm.recentResult = params.get(0).clone();
 		}
 		else if (invokeSig.equals("Ljava/lang/System;->arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"))
 		{

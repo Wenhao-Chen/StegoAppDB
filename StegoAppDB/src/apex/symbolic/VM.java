@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -283,20 +284,20 @@ public class VM {
 			break;
 		case "check-cast"              : 	// vAA, type@BBBB
 		{
+			//NOTE: apparently some apps do check-cast null... "com.sg.steganography.apk"
 			String objID = mc.read(args[0]).getObjID();
-			if (objID==null)
+			if (objID != null)
 			{
-				shouldStop = true;
-				crashed = true;
-				return;
-			}
-			APEXObject obj = heap.get(objID);
-			obj.type = args[1];
-			obj.reference.type = args[1];
-			if (obj.type.startsWith("["))
-			{
-				APEXArray arr = this.createNewArray(obj.type, obj.root, null, obj.birth);
-				mc.assign(args[0], arr.reference);
+				APEXObject obj = heap.get(objID);
+				obj.type = args[1];
+				obj.reference.type = args[1];
+				if (obj.type.startsWith("["))
+				{
+					APEXArray arr = this.createNewArray(obj.type, obj.root, null, obj.birth);
+					mc.assign(args[0], arr.reference);
+				}
+			} else {
+				P.p("null at "+s.smali);
 			}
 			break;
 		}
@@ -486,6 +487,13 @@ public class VM {
 			}
 			else if (cmp == Condition.Less)
 				mc.stmtIndex = jumpIndex;
+//			if (s.index == 152) {
+//				P.p("cmp result: "+cmp);
+//				P.p("next stmt "+mc.stmtIndex);
+//				P.p(mc.read(args[0]).toString());
+//				P.p(mc.read(args[1]).toString());
+//				P.pause();
+//			}
 			break;
 		}
 		case "if-ge"                   : 	// vA, vB, +CCCC
@@ -826,10 +834,16 @@ public class VM {
 			}
 			APEXArray arr = (APEXArray) obj;
 			arr.aput(s, mc.read(args[2]), mc.read(args[0]), this);
-//			P.p("[aput] "+mc.read(args[0]).toString());
-//			P.p("    "+arr.reference.toString());
-//			P.p("    "+mc.read(args[2]).toString());
-
+//			if (s.smali.contentEquals("aput-byte v14, v8, v10")) {
+//				P.p(s.getUniqueID());
+//				P.p("[aput] "+mc.read(args[0]).toString());
+//				P.p("    "+arr.reference.toString());
+//				P.p("    "+mc.read(args[2]).toString());
+//				P.p("from bitmap: "+arr.isFromBitmap);
+//				P.pause();
+//				//P.p("[v7]: "+mc.read("v7").toString());
+//				//P.pause();
+//			}
 			break;
 		}
 		case "iget"                    : 	// vA, vB, field@CCCC
@@ -897,7 +911,6 @@ public class VM {
 		case "invoke-static/range"     : 	// {vCCCC .. vNNNN}, meth@BBBB
 		case "invoke-interface/range"  : 	// {vCCCC .. vNNNN}, meth@BBBB
 		{
-
 			String[] paramRegs = s.getParamRegisters();
 			List<Expression> params = new ArrayList<>();
 			for (int i = 0; i < paramRegs.length; i++)
@@ -907,7 +920,6 @@ public class VM {
 				if (Dalvik.isWideType(exp.type)) // skip a register if this is a wide value
 					i++;
 			}
-			
 			APEXMethod m = app.getNonLibraryMethod(args[1]);
 			if (m == null)
 			{
@@ -1529,7 +1541,7 @@ public class VM {
 			obj.reference.isSymbolic = true;
 		}
 		heap.put(id, obj);
-		loadClass(type, obj.reference);
+		loadClass(type, obj.reference, false);
 		return obj;
 	}
 	
@@ -1554,6 +1566,9 @@ public class VM {
 	public Expression getField(String objName, String fieldSig, APEXStatement s)
 	{
 		//P.p("[get field] " + s.getUniqueID());
+		String className = fieldSig.substring(0, fieldSig.indexOf("->"));
+		if (objName.contentEquals("$obj_0"))
+			loadClass(className, null, false);
 		Expression exp = heap.get(objName).fields.get(fieldSig);
 		if (exp == null) // need to create symbolic value
 		{
@@ -1585,20 +1600,22 @@ public class VM {
 	{
 		//P.p("putField params: " +exp.toString()+" || "+objName+" || " + fieldSig);
 		heap.get(objName).fields.put(fieldSig, exp.clone());
+
 	}
 	
 	/**
 	 * initiate the static field values and run the <clinit>()V method.
 	 * if needed, run the default constructor
 	 * */
-	private void loadClass(String dexName, Expression objRef)
+	private void loadClass(String dexName, Expression objRef, boolean instantiate)
 	{
 		if (loadedClasses.contains(dexName))
 			return;
+		loadedClasses.add(dexName);
 		APEXClass c = app.classes.get(dexName);
 		if (c == null)
 			return;
-		loadedClasses.add(dexName);
+		
 		//P.p("loading class " +dexName);
 		for (APEXField f : c.fields.values())
 		{
@@ -1616,15 +1633,17 @@ public class VM {
 		APEXMethod m = c.getMethodBySubsignature("<clinit>()V");
 		if (m != null)
 			execute(m);
-		
-		m = c.getMethodBySubsignature("<init>()V");
-		if (m != null)
-		{
-			//P.p("executing "+m.signature);
-			List<Expression> params = new ArrayList<>();
-			params.add(objRef);
-			execute(m, params);
+		if (instantiate) {
+			m = c.getMethodBySubsignature("<init>()V");
+			if (m != null)
+			{
+				//P.p("executing "+m.signature);
+				List<Expression> params = new ArrayList<>();
+				params.add(objRef);
+				execute(m, params);
+			}
 		}
+		
 		while (!temp.isEmpty())
 			methodStack.push(temp.pop());
 	}
@@ -1641,6 +1660,7 @@ public class VM {
 	public void print(PrintStream out)
 	{
 		out.println("------------------- VM Snapshot -----------");
+		out.println("prev stmt: "+execLog.get(execLog.size()-1).getUniqueID());
 		out.println("================ Method Stack ==========");
 		for (MethodContext m : methodStack)
 		{

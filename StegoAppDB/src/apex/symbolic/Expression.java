@@ -12,8 +12,8 @@ import java.util.Queue;
 import java.util.Set;
 
 import apex.symbolic.solver.Arithmetic;
+import app_analysis.common.Dirs;
 import util.Dalvik;
-import util.Dirs;
 import util.Graphviz;
 import util.P;
 
@@ -34,6 +34,7 @@ public class Expression implements Serializable{
 	public List<Expression> children;
 	public boolean isSymbolic;
 	public boolean related_to_pixel;
+	public boolean shouldHighlight = false;
 	
 	public String note;
 	
@@ -49,51 +50,6 @@ public class Expression implements Serializable{
 		children = new ArrayList<>();
 		isSymbolic = false;
 		related_to_pixel = false;
-	}
-	
-	public void toDotGraph2()
-	{
-		List<String> vertices = new ArrayList<>();
-		Map<Integer, Set<Integer>> edges = new HashMap<>();
-		dfs(vertices, edges, -1, this);
-		
-		String text = "digraph G{\n";
-		text += "\tcompound=true;\n";
-		text += "\tnode [shape=box];\n";
-		for (int i = 0; i < vertices.size(); i++)
-		{
-			text += "\t"+Graphviz.toDotGraphString(i, vertices.get(i))+"\n";
-		}
-		for (int src : edges.keySet())
-		{
-			for (int dst : edges.get(src))
-			{
-				text += "\t"+src+" -> "+dst+" [label=\"\"];\n";
-			}
-		}
-		text += "}";
-		
-		P.p(text);
-		P.pause();
-		
-		Graphviz.makeDotGraph(text, "test", Dirs.Desktop, true);
-	}
-	
-	private void dfs(List<String> vertices, Map<Integer, Set<Integer>> edges, int parent, Expression curr)
-	{
-		if (curr==null)
-			return;
-		int index = vertices.size();
-		vertices.add(curr.root);
-		if (parent!=-1)
-		{
-			edges.putIfAbsent(parent, new HashSet<>());
-			edges.get(parent).add(index);
-		}
-		for (Expression child : curr.children)
-		{
-			dfs(vertices, edges, index, child);
-		}
 	}
 	
 	public void toDotGraph(String name, File dir, boolean trimmed)
@@ -133,7 +89,7 @@ public class Expression implements Serializable{
 				edges.get(i).add(index-1);
 			}
 		}
-		
+		Set<Integer> indicesToHighlight = new HashSet<>();
 		String text = "digraph G{\n";
 		text += "\tcompound=true;\n";
 		text += "\tordering=out;\n";
@@ -141,17 +97,31 @@ public class Expression implements Serializable{
 		//text += "\tedge [dir=none];\n";
 		for (Expression exp : indices.keySet())
 		{
-			text += "\t"+Graphviz.toDotGraphString(indices.get(exp), exp.root)+"\n";
+			if (exp.shouldHighlight) {
+				text += "\t"+ Graphviz.toDotGraphString(indices.get(exp), exp.root, "red", "red") +"\n";
+				indicesToHighlight.add(indices.get(exp));
+			}
+			else
+				text += "\t"+Graphviz.toDotGraphString(indices.get(exp), exp.root)+"\n";
 		}
 		for (int src : edges.keySet())
 		{
+			boolean hl = indicesToHighlight.contains(src);
 			List<Integer> dsts = edges.get(src);
 			for (int i = 0; i < dsts.size(); i++)
 			{
-				if (dsts.size()>2)
-					text += "\t"+src+" -> "+dsts.get(i)+"[label=\""+(i+1)+"\"];\n";
-				else
-					text += "\t"+src+" -> "+dsts.get(i)+";\n";
+				if (hl) {
+					if (dsts.size()>2)
+						text += "\t"+src+" -> "+dsts.get(i)+"[label=\""+(i+1)+"\" color=red];\n";
+					else
+						text += "\t"+src+" -> "+dsts.get(i)+"[color=red];\n";
+				}
+				else {
+					if (dsts.size()>2)
+						text += "\t"+src+" -> "+dsts.get(i)+"[label=\""+(i+1)+"\"];\n";
+					else
+						text += "\t"+src+" -> "+dsts.get(i)+";\n";
+				}
 			}
 		}
 		text += "}";
@@ -193,18 +163,20 @@ public class Expression implements Serializable{
 		else if (isReturnValue())
 		{
 			String res = children.get(0).toString(); // invokeParam
-			String className = Dalvik.DexToJavaName(res.substring(0, res.indexOf("->")));
-			if (className.contains("."))
-				className = className.substring(className.lastIndexOf(".")+1);
-			res = res.substring(res.indexOf("->")+2, res.indexOf("("));
-			res = className+"."+res+"(";
-			for (int i = 1; i < children.size(); i++)
-			{
-				res += children.get(i).toString();
-				if (i < children.size()-1)
-					res += ", ";
+			if (res.contains("->")) {
+				String className = Dalvik.DexToJavaName(res.substring(0, res.indexOf("->")));
+				if (className.contains("."))
+					className = className.substring(className.lastIndexOf(".")+1);
+				res = res.substring(res.indexOf("->")+2, res.indexOf("("));
+				res = className+"."+res+"(";
+				for (int i = 1; i < children.size(); i++)
+				{
+					res += children.get(i).toString();
+					if (i < children.size()-1)
+						res += ", ";
+				}
+				res += ")";
 			}
-			res += ")";
 			return res;
 		}
 		else if (children.size()==1) // special case for "not-<type>" operations

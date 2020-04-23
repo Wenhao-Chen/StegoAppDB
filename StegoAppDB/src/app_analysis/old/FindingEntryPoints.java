@@ -15,7 +15,6 @@ import apex.bytecode_wrappers.APEXMethod;
 import apex.bytecode_wrappers.APEXStatement;
 import apex.graphs.CallGraph;
 import apex.graphs.CallGraph.Vertex;
-import app_analysis.APISignatures;
 import ui.ProgressUI;
 import util.F;
 
@@ -74,7 +73,8 @@ public class FindingEntryPoints {
 				if (shouldGoIn(app, shouldGo, m))
 				{
 					Vertex v = cg.vertices.get(m.signature);
-					if (v!=null && v.in_degree==0)
+					//if (v!=null && v.in_degree==0) // only take entry point methods
+					if (v!=null)
 						entries.add(m);
 				}
 		}
@@ -108,12 +108,14 @@ public class FindingEntryPoints {
 				break;
 			}
 			//System.out.printf("testing %s\n", sig);
+			/*
 			APEXMethod nestedM = app.getNonLibraryMethod(sig);
 			if (nestedM!=null && nestedM!=m && shouldGoIn(app, map, nestedM))
 			{
 				res = true;
 				break;
 			}
+			*/
 		}
 		map.put(m, res);
 		return res;

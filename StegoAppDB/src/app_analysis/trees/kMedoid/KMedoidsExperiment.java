@@ -1,4 +1,4 @@
-package app_analysis.trees;
+package app_analysis.trees.kMedoid;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,12 +38,15 @@ public class KMedoidsExperiment {
 		for (File apk : apks) {
 			File recordDir = new File(labelsDirRoot, apk.getName());
 			recordDir.mkdirs();
-			int bestK = TestAndEvaluate(apk, recordDir);
-			P.p(apk.getName()+"\t"+bestK);
+			//extractMedoids(apk);
+			//int bestK = TestAndEvaluate(apk, recordDir);
+			//P.p(apk.getName()+"\t"+bestK);
 		}
 		P.p("All Done. Started on "+started+". Ended on "+P.getTimeString("yyyy/MM/dd HH:mm:ss"));
 		P.p("Total trees: "+treeCount);
 	}
+	
+	
 	
 	static int app_index = 0;
 	static int treeCount = 0;

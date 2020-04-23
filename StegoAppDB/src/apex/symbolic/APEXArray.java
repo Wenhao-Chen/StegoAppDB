@@ -159,9 +159,13 @@ public class APEXArray extends APEXObject{
 				// x = index/width, y = index%width
 				if (bitmap.bitmapWidth==null)
 				{
-					bitmap.bitmapWidth = new Expression("I", "return");
-					bitmap.bitmapWidth.add(new Expression("Landroid/graphics/Bitmap;->getWidth()I"));
-					bitmap.bitmapWidth.add(bitmapReference.clone());
+					if (vm.allocateConcreteBitmap) {
+						bitmap.bitmapWidth = Expression.newLiteral("I", "30");
+					}else {
+						bitmap.bitmapWidth = new Expression("I", "return");
+						bitmap.bitmapWidth.add(new Expression("Landroid/graphics/Bitmap;->getWidth()I"));
+						bitmap.bitmapWidth.add(bitmapReference.clone());
+					}
 				}
 				if (eleType.equalsIgnoreCase("B"))	//byte buffer only returns one channel of a pixel
 				{

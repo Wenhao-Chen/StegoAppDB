@@ -1,4 +1,4 @@
-package app_analysis.old;
+package app_analysis.common;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,6 +27,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -115,6 +116,11 @@ public class HelperUI extends JPanel{
 		utilityPanel = new JPanel(new BorderLayout());
 		JButton b = new JButton("Save Notes");
 		JLabel l = new JLabel("Notes:");
+		JTextField et = new JTextField();
+		et.setMaximumSize(new Dimension(2000,50));
+		JButton b_to10 = new JButton("To Base-10");
+		JButton b_to16 = new JButton("To Base-16");
+		JLabel b_res = new JLabel("result");
 		ta_notes = new JTextArea(15,0);
 		JPanel top = new JPanel();
 		
@@ -123,6 +129,14 @@ public class HelperUI extends JPanel{
 		top.add(l);
 		top.add(Box.createRigidArea(new Dimension(20,0)));
 		top.add(b);
+		top.add(Box.createRigidArea(new Dimension(20,0)));
+		top.add(et); 
+		top.add(Box.createRigidArea(new Dimension(20,0)));
+		top.add(b_to10);
+		top.add(Box.createRigidArea(new Dimension(20,0)));
+		top.add(b_to16); 
+		top.add(Box.createRigidArea(new Dimension(20,0)));
+		top.add(b_res);
 		top.add(Box.createHorizontalGlue());
 		
 		utilityPanel.add(top, BorderLayout.NORTH);
@@ -133,6 +147,72 @@ public class HelperUI extends JPanel{
 			public void actionPerformed(ActionEvent e)
 			{
 				saveNotes(ta_notes.getText());
+			}
+		});
+		
+		b_to10.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				String s = et.getText();
+				if (s==null ||s.isEmpty())
+					return;
+				int i=0;
+				boolean neg = false;
+				if (s.charAt(0)=='-') {
+					neg = true;
+					i = 1;
+				}
+				int base = 10;
+				if (s.charAt(i)=='0' && s.charAt(i+1)=='x') {
+					i+=2;
+					base = 16;
+				} else if (s.charAt(i)=='0' && s.charAt(i+1)=='b') {
+					i+=2;
+					base = 2;
+				}
+					
+				try {
+					int base10 = Integer.parseInt(s.substring(i), base);
+					b_res.setText(s+" is "+(neg?-base10:base10)+" in base-10");
+				}
+				catch (NumberFormatException ee) {
+					b_res.setText("format error");
+				}
+			}
+		});
+		b_to16.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				String s = et.getText();
+				if (s==null ||s.isEmpty())
+					return;
+				int i=0;
+				boolean neg = false;
+				if (s.charAt(0)=='-') {
+					neg = true;
+					i = 1;
+				}
+				int base = 10;
+				if (s.charAt(i)=='0' && s.charAt(i+1)=='x') {
+					i+=2;
+					base = 16;
+				} else if (s.charAt(i)=='0' && s.charAt(i+1)=='b') {
+					i+=2;
+					base = 2;
+				}
+					
+				try {
+					int base10 = Integer.parseInt(s.substring(i), base);
+					if (neg)
+						base10 = -base10;
+					String hex = Integer.toHexString(base10);
+					b_res.setText(s+" is 0x"+hex+" in base-16");
+				}
+				catch (NumberFormatException ee) {
+					b_res.setText("format error");
+				}
 			}
 		});
 		

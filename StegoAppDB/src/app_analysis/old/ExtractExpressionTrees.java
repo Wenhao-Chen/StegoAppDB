@@ -4,17 +4,19 @@ import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import apex.APEXApp;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.symbolic.APEXObject;
 import apex.symbolic.APEXObject.BitmapAccess;
-import app_analysis.trees.ETUtil;
-import apex.symbolic.Expression;
 import apex.symbolic.VM;
+import app_analysis.common.Dirs;
+import app_analysis.trees.ReferenceTrees;
 import ui.ProgressUI;
 import util.F;
 import util.P;
@@ -35,12 +37,14 @@ public class ExtractExpressionTrees {
 		File notesRoot = new File(Template.notesDir, "Notes");
 		//Set<String> alreadyDone = new HashSet<>(F.readLinesWithoutEmptyLines(alreadyDoneF));
 		//TreeSet<File> apks = Template.orderFiles(Template.getStegoAPKs());
-		List<File> apks = Template.getStegoAPKs();
-		apks.clear();
-		apks.add(new File("E:\\crawled_from_github\\android\\StegoBenchmark\\app\\build\\outputs\\apk\\debug\\app-debug.apk"));
+		List<File> apks = Dirs.getFiles(Dirs.Stego_PlayStore);
+		//apks.clear();
+		//apks.add(new File("E:\\crawled_from_github\\android\\StegoBenchmark\\app\\build\\outputs\\apk\\debug\\app-debug.apk"));
 		int total = apks.size(), i = 1;
 		for (File apk : apks)
 		{
+			if (!apk.getName().startsWith("stega.jj"))
+				continue;
 			ui_overall.newLine(String.format("doing %5d/%d: %s", i++, total, apk.getName()));
 			File appTreeDir = new File(treeRoot, apk.getName());
 			appTreeDir.mkdirs();
@@ -56,6 +60,9 @@ public class ExtractExpressionTrees {
 			
 			APEXApp app = new APEXApp(apk, false);
 			boolean[] cond123 = testExtract(appTreeDir, app);
+			P.p("app done: "+app.packageName);
+			ReferenceTrees.singleApp = apk.getName();
+			ReferenceTrees.go();
 			F.writeLine(apk.getName(), alreadyDoneF, true);
 			F.writeLine(String.format("%b %b %b", cond123[0], cond123[1], cond123[2]), notesF, false);
 		}
@@ -73,15 +80,18 @@ public class ExtractExpressionTrees {
 	{
 		boolean[] cond123 = new boolean[3];
 		// find entry point methods
-		Set<APEXMethod> entries = FindingEntryPoints.findOrLoad(app);
+		File epFile = new File(FindingEntryPoints.epDir, app.packageName+".apk.ep");
+		Set<APEXMethod> entries = //FindingEntryPoints.findOrLoad(app);
+				FindingEntryPoints.find(app, epFile);
+		P.p("--- entry point methods ---");
+		entries.forEach(k->P.p("  "+k.signature));
 		int total = entries.size(), index = 0;
 		int treeCount = 0;
 		// start symbolic execution for each entry point method
 		// execute until: (1) all paths explored, (2) path limit reached
+		Map<String, Integer> map = new HashMap<>();
 		for (APEXMethod m : entries)
 		{
-			//if (!m.signature.startsWith("Lalexparunov/steganographer/activities/encrypt/EncryptInteractorImpl$EmbedSecretMessage;->doInBackground"))
-			//	continue;
 			//P.p("doing "+m.signature);
 			String entryHash = m.c.getJavaName()+"."+m.getName()+"_"+m.signature.hashCode();
 			int expIndex = 1;
@@ -93,11 +103,7 @@ public class ExtractExpressionTrees {
 			{
 				ui.newLine(String.format("doing %3d/%d/%03d: %s", index, total, pathCount, m.signature));
 				VM vm = q.poll();
-				////P.p("[path]"+pathCount+"/"+limit+": "+vm.methodStack.peek().m.signature+" "+vm.methodStack.peek().stmtIndex);
-				////String sig = vm.methodStack.peek().m.signature;
-				////VM.printDebug = sig.startsWith("Lalexparunov/steganographer/activities/encrypt/EncryptInteractorImpl$EmbedSecretMessage;->doInBackground") ||
-				////				sig.startsWith("Lalexparunov/steganographer/algorithms/Embedding;->embedSecretText");
-				
+				//vm.allocateConcreteBitmap = true;
 				vm.execute(true);
 				// after a path is executed without crashing, collect expression trees
 				if (!vm.crashed)
@@ -112,9 +118,10 @@ public class ExtractExpressionTrees {
 						String name = entryHash+"_"+expIndex++;
 						ba.c.toDotGraph(name, expDir, true);
 						ba.c.toDotGraph(name, expDir, false);
+						map.put(ba.stmt, map.getOrDefault(ba.stmt, 0)+1);
 						
-						Expression trimmed = ETUtil.trim(ba.c);
-						trimmed.toDotGraph(name+"_super_trimmed", expDir, false);
+						//Expression trimmed = ETUtil.trim(ba.c);
+						//trimmed.toDotGraph(name+"_super_trimmed", expDir, false);
 						
 						F.writeObject(ba.c, new File(expDir, name+".expression"));
 						treeCount++;
@@ -138,6 +145,8 @@ public class ExtractExpressionTrees {
 			//P.p("  method "+m.signature+" did "+pathCount+" paths.");
 		}
 		P.pf("Found %d expression trees for app %s. Cond 1/2/3 = %b/%b/%b\n", treeCount, app.packageName, cond123[0], cond123[1], cond123[2]);
+		for (String stmt : map.keySet())
+			P.pf("%s %d\n", stmt, map.get(stmt));
 		return cond123;
 	}
 	
