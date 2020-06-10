@@ -85,6 +85,9 @@ public class APEXObject{
 	public Expression bufferLength;        // this is from Buffer.allocate(I)
 	public Expression arrayReference;		// this is from Buffer.wrap([x)
 	///////////////////////////////////////////////////////////////////////////////////
+	
+	////////////// Integer.toBinaryString(getPixel(), Color.red(), ...) ////////////////
+	public Expression imageDataExp;
 
 	private APEXObject() {}
 	

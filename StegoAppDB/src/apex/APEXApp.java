@@ -35,6 +35,8 @@ public class APEXApp {
 	public static boolean justDecode = false;
 	public static boolean backup = false;
 	public static boolean verbose = false;
+	public static boolean parseXML = true;
+	public boolean malfunction = false;
 	
 	public APEXApp(File f)
 	{
@@ -84,14 +86,17 @@ public class APEXApp {
 		if (!justDecode)
 		{
 			// save backup smali
-			backupDir = new File(outDir, "backup");
-			backupDir.mkdirs();
-			if (backup)
-				backupSmali();
 			
+			if (backup) {
+				backupDir = new File(outDir, "backup");
+				backupDir.mkdirs();
+				backupSmali();
+			}
 			// parse smali and XMLs
-			parseSmali();
-			parseXML();
+			if (!parseSmali())
+				return;
+			if (parseXML)
+				parseXML();
 		}
 		loadInstancOfAnswers();
 	}
@@ -160,15 +165,23 @@ public class APEXApp {
 		return res;
 	}
 	
-	private void parseSmali()
+	private boolean parseSmali()
 	{
-		classes = new HashMap<>();
-		parseSmali(smaliDir);
-		for (File dir : otherSmaliDirs)
-			parseSmali(dir);		
+		try {
+			classes = new HashMap<>();
+			parseSmali(smaliDir);
+			for (File dir : otherSmaliDirs)
+				parseSmali(dir);
+		}
+		catch (Exception e) {
+			P.e("error parsing smali files... should skip this APEXApp object");
+			this.malfunction = true;
+			return false;
+		}
+		return true;
 	}
 	
-	private void parseSmali(File f)
+	private void parseSmali(File f) throws Exception
 	{
 		if (f.isDirectory())
 		{

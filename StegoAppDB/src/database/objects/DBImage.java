@@ -20,8 +20,12 @@ import util.Images;
 
 public class DBImage {
 	
+	// if true: use colored png for spatial apps
+	// otherwise: use grayscale png for spatial apps
+	// JPEG apps are not affected
+	public static boolean useColorInput = true;
 	
-	public File original, png, colorPNG, tif, exif;
+	public File original, grayPNG, colorPNG, tif, exif;
 	public int index;
 	public Map<String, List<DBStego>> stegos;
 	private DBScene scene;
@@ -32,8 +36,7 @@ public class DBImage {
 		this.index = index;
 		this.scene = scene;
 		String leftPart = original.getName().substring(0, original.getName().lastIndexOf("_o."));
-		png = new File(scene.device.grayPNGDir, leftPart+"_c.png");
-		
+		grayPNG = new File(scene.device.grayPNGDir, leftPart+"_c.png");
 		colorPNG = new File(scene.device.colorPNGDir, leftPart+"_cc.png");
 		tif = new File(scene.device.tifDir, leftPart+"_o.tif");
 		exif = new File(scene.device.exifDir, f.getName()+".exif");
@@ -44,7 +47,9 @@ public class DBImage {
 			String appName = appDir.getName();
 			if (appName.equals(Passlok.fullName) && !Images.isJPEG(original)) // we only use original JPEG for passlok
 				continue;
-			File input = (appName.equals(PixelKnot.fullName) || appName.equals(Passlok.fullName))? original : png;
+			File input = (appName.equals(PixelKnot.fullName) || appName.equals(Passlok.fullName))? 
+					original : 
+					useColorInput? colorPNG : grayPNG;
 			
 			String stegoNamePrefix = input.getName()+"_s_"+DBStego.getAbbrAppName(appName)+"_rate-";
 			String stegoNameSuffix = DBStego.spatialApps.contains(appName)?".png":".jpg";
@@ -99,7 +104,7 @@ public class DBImage {
 	
 	public int makePNG(PrintWriter out)
 	{
-		if (png.exists())
+		if (colorPNG.exists() && grayPNG.exists())
 			return 0;
 		
 		// make the color PNG
@@ -120,19 +125,20 @@ public class DBImage {
 			Images.centerCrop(img, colorPNG);
 		}
 		
-		// add color to gray job to matlab script
-		if (out != null)
+		// if we need gray, add color to gray job to matlab script
+		if (!useColorInput && !grayPNG.exists() && out != null)
 		{
 			try
 			{
-				out.write(colorPNG.getAbsolutePath()+","+png.getAbsolutePath()+"\n");
+				out.write(colorPNG.getAbsolutePath()+","+grayPNG.getAbsolutePath()+"\n");
 			}
 			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
+			return 1;
 		}
-		return 1;
+		return 0;
 	}
 	
 	public void makePictographStegos(boolean redo)
@@ -145,8 +151,8 @@ public class DBImage {
 		if (!redo && allExist(appStegos))
 			return;
 		
-		Pictograph pg = new Pictograph(Images.loadImage(png));
-		pg.inputPath = png.getAbsolutePath();
+		Pictograph pg = new Pictograph(Images.loadImage(colorPNG));
+		pg.inputPath = colorPNG.getAbsolutePath();
 		pg.coverPath = appStegos.get(0).stegoImage.getAbsolutePath();
 		for (DBStego stego : appStegos)
 		{
@@ -236,14 +242,14 @@ public class DBImage {
 		g.put("F Number", null);
 		g.put("Focal Length", null);
 		// input (PNG)
-		int[] pngSize = Images.getImageDimension(png);
-		g.put("Image Path", trimPath(png));
-		g.put("Image Format", F.getFileExt(png).toUpperCase());
+		int[] pngSize = Images.getImageDimension(colorPNG);
+		g.put("Image Path", trimPath(colorPNG));
+		g.put("Image Format", F.getFileExt(colorPNG).toUpperCase());
 		g.put("Image Width", pngSize[0]+"");
 		g.put("Image Height", pngSize[1]+"");
-		g.put("Backup Path", png.getAbsolutePath());
+		g.put("Backup Path", colorPNG.getAbsolutePath());
 		g.put("Image Type", "input");
-		g.put("JPG Quality", F.getFileExt(png).equalsIgnoreCase("jpg")?"90":null);
+		g.put("JPG Quality", F.getFileExt(colorPNG).equalsIgnoreCase("jpg")?"90":null);
 		CSSM.writeGeneralCSVEntry(g, general);
 		if (scene_general != null)
 			CSSM.writeGeneralCSVEntry(g, scene_general);

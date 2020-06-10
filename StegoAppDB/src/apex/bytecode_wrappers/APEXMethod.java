@@ -42,7 +42,7 @@ public class APEXMethod {
 	}
 	
 	
-	public APEXMethod(List<String> body, APEXClass c)
+	public APEXMethod(List<String> body, APEXClass c) throws Exception
 	{
 		if (body.isEmpty())
 		{
@@ -192,7 +192,7 @@ public class APEXMethod {
 	}
 	
 	
-	private void parseBody(List<String> body)
+	private void parseBody(List<String> body) throws Exception
 	{
 		if (body.size()<=2) // could be native
 			return;
@@ -256,15 +256,7 @@ public class APEXMethod {
 				while (!line.equals(endLabel))
 				{
 					data.add(line);
-					try
-					{
-						line = body.get(++i);
-					}
-					catch (Exception e)
-					{
-						P.e("error when reading "+c.smaliF.getAbsolutePath());
-						System.exit(1);
-					}
+					line = body.get(++i);
 				}
 				data.add(line);
 				supplementalDataBlocks.add(new SupplementalData(label, data));

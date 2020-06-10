@@ -12,6 +12,7 @@ import java.util.Set;
 
 import apex.APEXApp;
 import util.Dalvik;
+import util.P;
 
 public class APEXClass {
 
@@ -32,7 +33,7 @@ public class APEXClass {
 	private BufferedReader in;
 	private APEXApp app;
 	
-	public APEXClass(File smaliF, APEXApp app)
+	public APEXClass(File smaliF, APEXApp app) throws Exception
 	{
 		this.smaliF = smaliF;
 		this.app = app;
@@ -51,8 +52,8 @@ public class APEXClass {
 	
 	
 	private int currLine;
-	private void parseSmali()
-	{
+	private void parseSmali() throws Exception {
+		//P.p("  loading "+smaliF.getAbsolutePath());
 		fields = new HashMap<>();
 		methods = new HashMap<>();
 		methodNameIndex = new HashMap<>();
@@ -61,85 +62,82 @@ public class APEXClass {
 		annotations = new ArrayList<>();
 		
 		Map<String, Integer> nameCount = new HashMap<>();
-		try
+		in = new BufferedReader(new FileReader(smaliF));
+		String line;
+		currLine = 0;
+		while ((line=in.readLine())!=null)
 		{
-			in = new BufferedReader(new FileReader(smaliF));
-			String line;
-			currLine = 0;
-			while ((line=in.readLine())!=null)
-			{
-				currLine++;
-				if (line.isEmpty() || line.charAt(0)!='.')
-					continue;
-					
-				String keyword = line.substring(0, line.indexOf(" "));
-				switch (keyword)
-				{
-				case ".class":
-					declaration = line;
-					dexName = line.substring(line.lastIndexOf(" ")+1);
-					String[] parts = line.split(" ");
-					for (int i = 1; i < parts.length-1; i++)
-						modifiers.add(parts[i]);
-					break;
-					
-				case ".super":
-					superClassDexName = line.substring(line.indexOf(" ")+1);
-					break;
-					
-				case ".source":
-					sourceFileName = line.substring(line.indexOf("\"")+1, line.lastIndexOf("\""));
-					break;
-					
-				case ".implements":
-					interfaces.add(line.substring(line.indexOf(" ")+1));
-					break;
-					
-				case ".annotation":
-					// Multiple lines with last line equals ".end annotation"
-					List<String> annotation = new ArrayList<>();
-					annotation.add(line);
-					readLinesUntil(annotation, ".end annotation");
-					annotations.add(annotation);
-					break;
+			currLine++;
+			if (line.isEmpty() || line.charAt(0)!='.')
+				continue;
 				
-				case ".field":
-					//sometimes fields have annotations
-					List<String> fieldBody = new ArrayList<>();
+			String keyword = line.substring(0, line.indexOf(" "));
+			switch (keyword)
+			{
+			case ".class":
+				declaration = line;
+				dexName = line.substring(line.lastIndexOf(" ")+1);
+				String[] parts = line.split(" ");
+				for (int i = 1; i < parts.length-1; i++)
+					modifiers.add(parts[i]);
+				break;
+				
+			case ".super":
+				superClassDexName = line.substring(line.indexOf(" ")+1);
+				break;
+				
+			case ".source":
+				sourceFileName = line.substring(line.indexOf("\"")+1, line.lastIndexOf("\""));
+				break;
+				
+			case ".implements":
+				interfaces.add(line.substring(line.indexOf(" ")+1));
+				break;
+				
+			case ".annotation":
+				// Multiple lines with last line equals ".end annotation"
+				List<String> annotation = new ArrayList<>();
+				annotation.add(line);
+				readLinesUntil(annotation, ".end annotation");
+				annotations.add(annotation);
+				break;
+			
+			case ".field":
+				//sometimes fields have annotations
+				List<String> fieldBody = new ArrayList<>();
+				fieldBody.add(line);
+				line = in.readLine();
+				currLine++;
+				if (line!=null && line.trim().startsWith(".annotation"))
+				{
 					fieldBody.add(line);
-					line = in.readLine();
-					currLine++;
-					if (line!=null && line.trim().startsWith(".annotation"))
-					{
-						fieldBody.add(line);
-						readLinesUntil(fieldBody, ".end field");
-					}
-					APEXField f = new APEXField(fieldBody, this);
-					fields.put(f.subSignature, f);
-					break;
-					
-				case ".method":
-					List<String> methodBody = new ArrayList<>();
-					methodBody.add(line);
-					int num = currLine;
-					readLinesUntil(methodBody, ".end method");
-					APEXMethod m = new APEXMethod(methodBody, this);
-					m.lineNumber = num;
-					methods.put(m.signature, m);
-					
-					String name = m.getName();
-					int count = nameCount.getOrDefault(name, 0)+1;
-					nameCount.put(name, count);
-					methodNameIndex.put(m.signature, count);
-					break;
+					readLinesUntil(fieldBody, ".end field");
 				}
+				APEXField f = new APEXField(fieldBody, this);
+				fields.put(f.subSignature, f);
+				break;
+				
+			case ".method":
+				List<String> methodBody = new ArrayList<>();
+				methodBody.add(line);
+				int num = currLine;
+				//P.p("    -parsing "+line);
+				readLinesUntil(methodBody, ".end method");
+				
+				APEXMethod m = new APEXMethod(methodBody, this);
+				//P.p("    -done parsing "+m.signature);
+				m.lineNumber = num;
+				methods.put(m.signature, m);
+				
+				String name = m.getName();
+				int count = nameCount.getOrDefault(name, 0)+1;
+				nameCount.put(name, count);
+				methodNameIndex.put(m.signature, count);
+				break;
 			}
-			in.close();
 		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+		in.close();
+		//P.p("  done parsing class "+smaliF.getName());
 	}
 	
 	public APEXMethod getMethodBySubsignature(String subSig)
@@ -207,7 +205,7 @@ public class APEXClass {
 			add("Lcom/cyberlink/youperfect/kernelctrl/gpuimage/*");
 			add("Lcom/sina/*");
 			add("Lcom/amazon/device/*");
-			add("Lf5/*");
+			//add("Lf5/*");
 			add("Lsse/org/bouncycastle/*");
 			add("Lca/repl/camopic/gl/*");
 			add("Lcom/caverock/androidsvg/SVGAndroidRenderer;");
@@ -219,6 +217,27 @@ public class APEXClass {
 			add("Lorg/jetbrains/*");
 			add("Lbutterknife/*");
 			add("Lcom/cinema/zz3/LoginActivity;"); // this is a malware class, there is a deep call back loop in here
+			add("Lcom/sogou/*");
+			add("Lcn/jpush/*");
+			add("Lcom/baidu/*");
+			add("Lcom/example/intex_pc/galleryapp/*");
+			add("Lcom/goodbarber/*");
+			add("Lcom/mobfox/sdk/*");
+			add("Lcom/swelen/ads/*");
+			add("Lorg/lasque/tusdk/*");
+			add("Lly/img/android/sdk/*");
+			add("Lcom/amazon/gallery/*");
+			add("Lcom/phototools/touchretouch/*");
+			add("Lcom/android/launcher3/*");
+			add("Lcom/edit/imageeditlibrary/*");
+			add("Lcom/collagemaker/grid/photo/editor/*");
+			add("Lcom/coolapps/mosaicphotoeffects/blureffects/*");
+			add("Lcom/cyou/cma/clauncher/theme/view/RoundedImageView;");
+			add("Lcom/ʼ/*");
+			add("Lcom/cyou/cma/clauncher/*");
+			add("Lcom/eabdrazakov/photomontage/ui/*");
+			add("Lcom/flambestudios/picplaypost/*");
+			add("Lcom/gif/gifmaker/*");
 	}};
 	
 	public boolean isLibraryClass()

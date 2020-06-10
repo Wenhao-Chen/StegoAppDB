@@ -1,6 +1,7 @@
 package apex.symbolic.solver;
 
 import apex.symbolic.Expression;
+import util.P;
 
 public class Logic {
 
@@ -35,6 +36,40 @@ public class Logic {
 		exp.add(vA.clone());
 		exp.add(vB.clone());
 		exp.related_to_pixel = vA.related_to_pixel || vB.related_to_pixel;
+		//NOTE: if vA is in the form of "getPixel() >> [24, 16, 8]" or "getPixel()",
+		//      and vB is exactly 0xff:
+		//          transform exp into Color.alpha/red/green/blue(getPixel())
+		if (vA.related_to_pixel && 
+				vB.isLiteral() && !vB.isSymbolic &&
+				Arithmetic.parseInt(vB.getLiteralValue()) == 255) {
+			// blue channel doesn't need right shift
+			if (vA.isReturnValue() && 
+					vA.getInvokeSig().contentEquals("Landroid/graphics/Bitmap;->getPixel(II)I")) {
+				exp = new Expression("I", "return")
+						.add("Landroid/graphics/Color;->blue(I)I")
+						.add(vA.clone());
+			} else if (vA.root.contentEquals(">>") || vA.root.contentEquals(">>>")) {
+				int shifted = vA.pixel_value_shifted;
+				Expression pixel = vA.children.get(0);
+				if (shifted==0) {
+					exp = new Expression("I", "return")
+							.add("Landroid/graphics/Color;->blue(I)I")
+							.add(pixel.clone());
+				} else if (shifted==8) {
+					exp = new Expression("I", "return")
+							.add("Landroid/graphics/Color;->green(I)I")
+							.add(pixel.clone());
+				} else if (shifted == 16) {
+					exp = new Expression("I", "return")
+							.add("Landroid/graphics/Color;->red(I)I")
+							.add(pixel.clone());
+				} else if (shifted == 24) {
+					exp = new Expression("I", "return")
+							.add("Landroid/graphics/Color;->alpha(I)I")
+							.add(pixel.clone());
+				}
+			}
+		}
 		return exp;
 	}
 	
@@ -107,6 +142,13 @@ public class Logic {
 		exp.add(vA.clone());
 		exp.add(vB.clone());
 		exp.related_to_pixel = vA.related_to_pixel || vB.related_to_pixel;
+		//NOTE: detect if this is an operation that tries to separate pixel channels
+		if (vA.isReturnValue() && 
+			vA.getInvokeSig().contentEquals("Landroid/graphics/Bitmap;->getPixel(II)I") &&
+			vB.isLiteral() && !vB.isSymbolic) {
+			exp.pixel_value_shifted = Arithmetic.parseInt(vB.getLiteralValue());
+		}
+		
 		return exp;
 	}
 	
@@ -125,6 +167,11 @@ public class Logic {
 		exp.add(vA.clone());
 		exp.add(vB.clone());
 		exp.related_to_pixel = vA.related_to_pixel || vB.related_to_pixel;
+		if (vA.root.contentEquals("return") && 
+				vA.children.get(0).root.contentEquals("Landroid/graphics/Bitmap;->getPixel(II)I") &&
+				vB.isLiteral() && !vB.isSymbolic) {
+				exp.pixel_value_shifted = Arithmetic.parseInt(vB.getLiteralValue());
+			}
 		return exp;
 	}
 	

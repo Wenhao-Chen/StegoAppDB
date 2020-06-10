@@ -3,11 +3,14 @@ package apex.symbolic;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import apex.APEXApp;
+import apex.bytecode_wrappers.APEXBlock;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.symbolic.solver.Arithmetic;
 import util.Dalvik;
@@ -18,19 +21,26 @@ public class MethodContext {
 
 	public APEXMethod m;
 	private Map<String, Register> regs;
+	public Set<APEXBlock> visitedBlocks = new HashSet<>();
 	public int stmtIndex;
 	
 	public boolean paramValid;
 	
 	private MethodContext() {}
-	public MethodContext(APEXApp app, APEXMethod m, VM vm)
+	public MethodContext(APEXApp app, APEXMethod m, VM_interface vm)
 	{
 		this(app, m, vm, null);
 	}
 	
-	public MethodContext(APEXApp app, APEXMethod m, VM vm, List<Expression> args)
+	public MethodContext(APEXApp app, APEXMethod m, VM_interface vm, List<Expression> args)
 	{
-		Graphviz.makeCFG(app, m.signature);
+//		P.pf("initializing MC for [%s]: [%s]...\n", app.packageName, m.signature);
+//		P.pf("-- args -- (size %d)\n", args==null?0:args.size());
+//		if (args!=null)
+//		for (Expression arg : args) {
+//			P.p("  "+arg.toString());
+//		}
+		//Graphviz.makeCFG(app, m.signature);
 		this.m = m;
 		regs = new TreeMap<>();
 		stmtIndex = 0;
@@ -128,7 +138,8 @@ public class MethodContext {
 	
 	public Expression read(String vA)
 	{
-		return regs.get(vA).value;
+		Register reg = regs.get(vA);
+		return reg==null?null:reg.value;
 	}
 	
 	public void assign(String vA, Expression value)
@@ -153,7 +164,8 @@ public class MethodContext {
 		if (wide)
 		{
 			r.isWideHigh = true;
-			r.next.isWideLow = true;
+			if (r.next != null)
+				r.next.isWideLow = true;
 		}
 	}
 	
@@ -215,6 +227,8 @@ public class MethodContext {
 		mc.stmtIndex = stmtIndex;
 		for (String name : regs.keySet())
 			mc.regs.put(name, regs.get(name).clone());
+		
+		mc.visitedBlocks.addAll(visitedBlocks);
 		
 		return mc;
 	}

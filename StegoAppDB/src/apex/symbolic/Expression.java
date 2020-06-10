@@ -12,7 +12,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import apex.symbolic.solver.Arithmetic;
-import app_analysis.common.Dirs;
 import util.Dalvik;
 import util.Graphviz;
 import util.P;
@@ -34,7 +33,12 @@ public class Expression implements Serializable{
 	public List<Expression> children;
 	public boolean isSymbolic;
 	public boolean related_to_pixel;
+	public int pixel_value_shifted = 0;
 	public boolean shouldHighlight = false;
+	public String highlightColor;
+	public boolean isBinaryBitOfImageData = false;
+	public int bitIndexFromRight = -1;
+	public Expression pixelExp = null;
 	
 	public String note;
 	
@@ -52,12 +56,12 @@ public class Expression implements Serializable{
 		related_to_pixel = false;
 	}
 	
-	public void toDotGraph(String name, File dir, boolean trimmed)
+	public File toDotGraph(String name, File dir, boolean trimmed)
 	{
-		File dotFile = new File(dir, name+(trimmed?"_timmed":"_full")+".dot");
-		File pdfFile = new File(dir, name+(trimmed?"_timmed":"_full")+".pdf");
+		File dotFile = new File(dir, name+(trimmed?"_trimmed":"_full")+".dot");
+		File pdfFile = new File(dir, name+(trimmed?"_trimmed":"_full")+".pdf");
 		if (dotFile.exists() && pdfFile.exists())
-			return;
+			return pdfFile;
 		
 		Queue<Expression> queue = new LinkedList<>();
 		queue.offer(this);
@@ -98,7 +102,8 @@ public class Expression implements Serializable{
 		for (Expression exp : indices.keySet())
 		{
 			if (exp.shouldHighlight) {
-				text += "\t"+ Graphviz.toDotGraphString(indices.get(exp), exp.root, "red", "red") +"\n";
+				String c = (highlightColor==null?"red":highlightColor);
+				text += "\t"+ Graphviz.toDotGraphString(indices.get(exp), exp.root, c, c) +"\n";
 				indicesToHighlight.add(indices.get(exp));
 			}
 			else
@@ -126,7 +131,7 @@ public class Expression implements Serializable{
 		}
 		text += "}";
 		
-		Graphviz.makeDotGraph(text, name+(trimmed?"_timmed":"_full"), dir, true);
+		return Graphviz.makeDotGraph(text, name+(trimmed?"_timmed":"_full"), dir, true);
 	}
 	
 	public String toStringRaw()
@@ -143,7 +148,7 @@ public class Expression implements Serializable{
 	{
 		if (children.size()==0)
 			return root;
-		else if (isLiteral())
+		else if (isLiteral() && type!=null)
 		{
 			if (isSymbolic)
 				return children.get(0).root;
@@ -197,6 +202,10 @@ public class Expression implements Serializable{
 		exp.isSymbolic = isSymbolic;
 		exp.note = note;
 		exp.related_to_pixel = related_to_pixel;
+		exp.isBinaryBitOfImageData = isBinaryBitOfImageData;
+		exp.pixel_value_shifted = pixel_value_shifted;
+		exp.bitIndexFromRight = this.bitIndexFromRight;
+		exp.pixelExp = pixelExp;
 		return exp;
 	}
 	
@@ -235,14 +244,15 @@ public class Expression implements Serializable{
 		return children.get(0).root;
 	}
 
-	public void add(String s)
+	public Expression add(String s)
 	{
-		add(new Expression(s));
+		return add(new Expression(s));
 	}
 	
-	public void add(Expression exp)
+	public Expression add(Expression exp)
 	{
 		children.add(exp);
+		return this;
 	}
 
 	public boolean isLiteral()
@@ -257,6 +267,10 @@ public class Expression implements Serializable{
 	{
 		return root.equals("return");
 	}
+	public String getInvokeSig() {
+		return isReturnValue()?children.get(0).root : null;
+	}
+	
 	private static final String[] operators = {
 			"+","-","*","/","%",			//0-4 are arithmetic
 			"&","|","^","<<",">>",">>>","~", //5-11 are logical

@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import ui.ProgressUI;
 
@@ -223,6 +224,20 @@ public class F {
 		}
 	}
 	
+	public static void write(Map<? extends Object, ? extends Object> map, String separator, File f, boolean append) {
+		try
+		{
+			PrintWriter out = new PrintWriter(new FileWriter(f, append));
+			for (Map.Entry<? extends Object, ? extends Object> entry : map.entrySet())
+				out.println(entry.getKey().toString()+separator+entry.getValue().toString());
+			out.close();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public static void copyToFolder(File from, File toDir) {
 		File to = new File(toDir, from.getName());
 		copy(from, to);
@@ -233,8 +248,7 @@ public class F {
 		if (from.isDirectory())
 		{
 			to.mkdirs();
-			for (File f1 : from.listFiles())
-			{
+			for (File f1 : from.listFiles()) {
 				File f2 = new File(to, f1.getName());
 				copy(f1, f2);
 			}

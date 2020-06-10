@@ -12,6 +12,7 @@ import java.util.TreeMap;
 
 import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.solver.Arithmetic;
+import app_analysis.common.Dirs;
 import util.Dalvik;
 import util.P;
 
@@ -21,8 +22,13 @@ public class APEXArray extends APEXObject{
 	public Expression length;
 	
 	public List<AputHistory> aputHistory;
+	Map<String, Expression> aputMap = new HashMap<>();
 	public Map<Integer, Expression> elements;
 	public boolean hasFixedLength;
+	public boolean isCharArrayOfString;
+	public Expression strExp;
+	private APEXArray parentArray;
+	private Expression indexInParent;
 	
 	public static class AputHistory {
 		public Expression index, val;
@@ -50,12 +56,18 @@ public class APEXArray extends APEXObject{
 			objA.elements.put(i, elements.get(i).clone());
 		objA.hasFixedLength = hasFixedLength;
 		objA.isFromBitmap = isFromBitmap;
+		objA.isCharArrayOfString = isCharArrayOfString;
+		if (strExp!=null)
+		objA.strExp = strExp.clone();
 		if (bitmapReference!=null)	objA.bitmapReference = bitmapReference.clone();
 		if (x!=null)				objA.x = x.clone();
 		if (y!=null)				objA.y = y.clone();
 		if (width!=null)			objA.width = width.clone();
 		if (height!=null)			objA.height = height.clone();
-		
+		objA.parentArray = parentArray;
+		for (String key : aputMap.keySet())
+			objA.aputMap.put(key, aputMap.get(key));
+		objA.indexInParent = indexInParent!=null?indexInParent.clone():null;
 		return objA;
 	}
 	
@@ -74,41 +86,56 @@ public class APEXArray extends APEXObject{
 		elements = new HashMap<>();
 		hasFixedLength = (this.length.isLiteral() && !this.length.isSymbolic);
 	}
-	
-
-
-
 
 	public void aput(APEXStatement s, int index, Expression val, VM vm)
 	{
+		if (elements.get(index)!=null) {
+			Expression oldVal = elements.get(index);
+			if (oldVal.bitIndexFromRight>-1 
+					&& oldVal.pixelExp != null
+					&& !val.related_to_pixel) {
+//				P.p("replacing pixel bit???");
+//				P.p(oldVal.pixelExp.toString());
+//				P.p(""+oldVal.bitIndexFromRight);
+//				P.p(val.toString());
+				// String stmtID, String action, Expression x, Expression y, Expression c
+				Expression x = oldVal.pixelExp.children.get(2);
+				Expression y = oldVal.pixelExp.children.get(3);
+				Expression c = new Expression("I", "|");
+				c.add(oldVal.pixelExp.clone());
+				if (oldVal.bitIndexFromRight==0)
+					c.add(val.clone());
+				else
+					c.add(new Expression("I", "<<")
+							.add(val.clone())
+							.add(Expression.newLiteral("I", ""+oldVal.bitIndexFromRight)));
+				bitmapHistory.add(new BitmapAccess(s.getUniqueID(), "setPixel", x, y, c));
+				P.pause("added bitmap access: "+c.toString());
+			}
+		}
 		elements.put(index, val.clone());
 		aputHistory.add(new AputHistory(Expression.newLiteral("I", ""+index), val.clone(), true));
-		//P.p("[aput history lit] "+index+" "+val.toString());
-		if (val.related_to_pixel)
-		{
-			this.isFromBitmap = true;
-		}
-		if (isFromBitmap)
-		{
-			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "set_aput", "aput", 
-					Arrays.asList(
-							this.reference, 
-							Expression.newLiteral("I", ""+index),
-							val
-							)));
-		}
+		this.isFromBitmap = val.related_to_pixel;
+//		if (isFromBitmap)
+//		{
+//			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "set_aput", "aput", 
+//					Arrays.asList(
+//							this.reference, 
+//							Expression.newLiteral("I", ""+index),
+//							val
+//							)));
+//		}
 	}
+	
 	
 	public void aput(APEXStatement s, Expression index, Expression val, VM vm)
 	{
+		
 		if (val.toString().contains("getPixel"))
 			this.isFromBitmap = true;
 		if (index.isLiteral() && !index.isSymbolic)
-		{
 			aput(s, Arithmetic.parseInt(index.children.get(0).root), val, vm);
-		}
-		else
-		{
+		else {
 			aputHistory.add(new AputHistory(index.clone(), val.clone(), false));
 			//P.p("[aput history sym] "+index.toString()+" "+val.toString());
 			if (isFromBitmap)
@@ -137,24 +164,27 @@ public class APEXArray extends APEXObject{
 		if (index.isLiteral() && !index.isSymbolic)
 		{
 			int i = Arithmetic.parseInt(index.children.get(0).root);
-			if (elements.containsKey(i))
+			if (elements.containsKey(i)) {
 				return elements.get(i);
+			}
+				
 		}
 		
 		// symbolic index but the aput history contains this index
 		for (int i = aputHistory.size()-1; i>=0; i--)
 		{
 			AputHistory h = aputHistory.get(i);
-			if (h.index.equals(index))
+			if (h.index.equals(index)) {
 				return h.val;
+			}
+				
 		}
 		
 		// can't find this element, so return a symbolic value
 		String eleType = type.substring(1);
 		if (Dalvik.isPrimitiveType(eleType))
 		{
-			if (isFromBitmap && bitmapReference != null)
-			{
+			if (isFromBitmap && bitmapReference != null) {
 				APEXObject bitmap = vm.heap.get(bitmapReference.getObjID());
 				// x = index/width, y = index%width
 				if (bitmap.bitmapWidth==null)
@@ -203,6 +233,7 @@ public class APEXArray extends APEXObject{
 					Expression res = new Expression("I","return");
 					res.add(new Expression(sig));
 					res.add(pixel.clone());
+					res.related_to_pixel = true;
 					return res;
 				}
 				else
@@ -222,7 +253,30 @@ public class APEXArray extends APEXObject{
 					res.add(bitmap.reference.clone());
 					res.add(Arithmetic.rem(index, bitmap.bitmapWidth, "I"));
 					res.add(Arithmetic.div(index, bitmap.bitmapWidth, "I"));
+					res.related_to_pixel = true;
 					return res;
+				}
+			}
+			else if (eleType.contentEquals("C") && isCharArrayOfString && strExp!=null) {
+				if (strExp.isLiteral()) {
+					Expression res = new Expression("C", "return");
+					res.add("Ljava/lang/String->charAt(I)C");
+					res.add(strExp.getLiteralValue());
+					res.add(index.clone());
+					return res;
+				} else if (strExp.getObjID()!=null){
+					APEXObject str = vm.heap.get(strExp.getObjID());
+					if (str.imageDataExp != null) {
+						//P.p("-- hehe");
+						//P.pause();
+						// red.toBinaryString().toCharArray()[x] = (red >> x) & 1
+						Expression res = new Expression("C", "&");
+						Expression left = new Expression(">>");
+						left.add(str.imageDataExp.clone()).add(index.clone());
+						res.add(left).add(Expression.newLiteral("I", "0x1"));
+						res.isBinaryBitOfImageData = true;
+						return res;
+					}
 				}
 			}
 			
@@ -236,12 +290,16 @@ public class APEXArray extends APEXObject{
 			APEXArray arr = vm.createNewArray(eleType, this.objID+"["+index.toString()+"]", null, s.getUniqueID()+" "+s.smali);
 			arr.isSymbolic = true;
 			arr.reference.isSymbolic = true;
-			this.aput(s, index, arr.reference, vm);
+			//P.p("  created new array element for array " + reference.getObjID()+"[" + index.toString()+"]");
+			aput(s, index, arr.reference, vm);
+			arr.parentArray = this;
+			arr.indexInParent = index.clone();
 			return arr.reference;
 		}
 		else
 		{
 			APEXObject obj = vm.createNewObject(eleType, this.objID+"["+index.toString()+"]", s.getUniqueID()+" "+s.smali, true);
+			//P.p("  created new object element for array " + reference.getObjID()+"[" + index.toString()+"]");
 			this.aput(s, index, obj.reference, vm);
 			return obj.reference;
 		}

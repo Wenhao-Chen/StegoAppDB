@@ -72,6 +72,9 @@ public class APISolver {
 		solvers.put("Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I", wrapperSolver);
 		solvers.put("Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;", wrapperSolver);
 		solvers.put("Ljava/lang/Integer;->intValue()I", wrapperSolver);
+		solvers.put("Ljava/lang/Integer;->valueOf(Ljava/lang/String;I)Ljava/lang/Integer;", wrapperSolver);
+		solvers.put("Ljava/lang/Integer;->valueOf(Ljava/lang/String;)Ljava/lang/Integer;", wrapperSolver);
+		solvers.put("Ljava/lang/Integer;->toBinaryString(I)Ljava/lang/String;", wrapperSolver);
 		solvers.put("Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;", wrapperSolver);
 		solvers.put("Ljava/lang/Boolean;->booleanValue()Z", wrapperSolver);
 		solvers.put("Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;", wrapperSolver);
@@ -88,6 +91,13 @@ public class APISolver {
 		solvers.put("Ljava/nio/ByteBuffer;->rewind()Ljava/nio/Buffer;", arraySolver);
 		solvers.put("Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;", arraySolver);
 		solvers.put("Ljava/nio/ByteBuffer;->asIntBuffer()Ljava/nio/IntBuffer;", arraySolver);
+		solvers.put("Ljava/lang/String;->toCharArray()[C", arraySolver);
+		solvers.put("Ljava/lang/String;->hashCode()I", arraySolver);
+		solvers.put("Ljava/lang/String;->substring(II)Ljava/lang/String;", arraySolver);
+		solvers.put("Ljava/lang/String;->valueOf(C)Ljava/lang/String;", arraySolver);
+		solvers.put("Ljava/lang/String;->concat(Ljava/lang/String;)Ljava/lang/String;", arraySolver);
+		solvers.put("Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;", arraySolver);
+		solvers.put("Ljava/lang/StringBuilder;->toString()Ljava/lang/String;", arraySolver);
 		
 		solvers.put("Ljava/nio/IntBuffer;->rewind()Ljava/nio/Buffer;", arraySolver);
 		solvers.put("Ljava/nio/IntBuffer;->array()[I", arraySolver);

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -32,17 +33,19 @@ public class ReferenceTrees {
 //				P.p("contains "+label);
 //			}
 //		}
-//		
+//		aria.photoshop.Photoshop.DecreaseColorDepth_-240438107_10_full
+		singleApp = "jubatus";
 		go();
 	}
-	
+
 	public static void go() {
 		List<File> apks = Dirs.getFiles(Dirs.Stego_Github, Dirs.Stego_PlayStore, Dirs.Stego_Others);
 		batchMatch(apks);
 	}
 	
+
+	static ProgressUI ui = ProgressUI.create("tree");
 	static void batchMatch(List<File> apks) {
-		ProgressUI ui = ProgressUI.create("tree");
 		Set<String> rootVals = new HashSet<>();
 		File treeRoot = new File("C:\\workspace\\app_analysis\\notes\\ExpressionTrees");
 		File trimmedRoot = new File("C:\\workspace\\app_analysis\\notes\\Medoid_ExpressionTrees");
@@ -54,9 +57,14 @@ public class ReferenceTrees {
 		Map<String, Integer> allResult = new TreeMap<>();
 		List<String> todoApps = new ArrayList<>();
 		for (File apk : apks) {
+			//if (!apk.getName().startsWith("com.artb"))
+			//	continue;
 			if (singleApp != null && !apk.getName().startsWith(singleApp))
 				continue;
 			File trimmedTreeDir = new File(trimmedRoot, apk.getName());
+			if (singleApp != null)
+				for (File f : trimmedTreeDir.listFiles())
+					f.delete();
 			File appDir = new File(treeRoot, apk.getName());
 			trimTreeCount(apk, appDir, trimmedTreeDir);
 			File appDir2 = new File("C:\\workspace\\app_analysis\\graphs\\expression", apk.getName());
@@ -92,11 +100,21 @@ public class ReferenceTrees {
 				}
 				Expression exp = (Expression) obj;
 				TreeRefUtils.normalize(exp);
+				
+//				exp.toDotGraph("temp"+new Random().nextInt(1000000), Dirs.Desktop, false);
+//				P.pause(treeF.getName());
+//				P.p(exp.toString());
+//				P.pause();
+				
 				rootVals.add(exp.root);
 				boolean matched = false;
 				for (String label : TreeRefUtils.trees.keySet()) {
 					if (contains(exp, TreeRefUtils.trees.get(label))) {
 						matched = true;
+//						if (apk.getName().startsWith("ir.")) {
+//							P.p(treeF.getAbsolutePath());
+//							P.pause();
+//						}
 						appResult.put(label, appResult.getOrDefault(label, 0)+1);
 						allResult.put(label, allResult.getOrDefault(label, 0)+1);
 						exp.toDotGraph(label+"_"+appResult.get(label), normalizedDir, false);
@@ -146,13 +164,20 @@ public class ReferenceTrees {
 		return null;
 	}
 	
+	static boolean temp = false;
 	static boolean contains(Expression exp1, Expression exp2) {
+//		if (temp) {
+//			P.p("exp1: "+exp1.toString());
+//			if (exp2 != null)
+//				P.p("exp2: "+exp2.toString());
+//			P.pause();
+//		}
 		if (exp1 == null)
 			return false;
 		if (exp2 == null || exp2.root.contentEquals("X")) {
-			exp1.shouldHighlight = false;
 			return true;
 		}
+
 		// see if exp1 and exp2 strictly matches
 		if (equals(exp1, exp2)) {
 			return true;
@@ -166,10 +191,33 @@ public class ReferenceTrees {
 		return res;
 	}
 	
+	public static boolean isStego(Expression exp) {
+		for (Expression ref : TreeRefUtils.trees.values())
+			if (contains(exp, ref))
+				return true;
+		return false;
+	}
+	
 	static boolean equals(Expression exp, Expression pattern) {
 		if (pattern == null || pattern.root.contentEquals("X")) {
-			exp.shouldHighlight = false; // do not hight X
 			return true;
+		}
+		if (pattern.root.contentEquals("Y")) {
+			boolean res = false;
+			String s = exp.root;
+			if (s.contentEquals("$GetPixel")) {
+				res = true;
+			}
+			if (s.contentEquals("return")) {
+				String sig = exp.children.get(0).root;
+				res =  sig.contentEquals("$Alpha") || sig.contentEquals("$Red") ||
+						sig.contentEquals("$Green") || sig.contentEquals("$Blue");
+			}
+			if (res) {
+				exp.shouldHighlight = true;
+				exp.highlightColor = "orange";
+			}
+			return res;
 		}
 		if (exp == null || !exp.root.contentEquals(pattern.root))
 			return false;

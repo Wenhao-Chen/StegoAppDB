@@ -50,6 +50,85 @@ public class CallGraph {
 		return getDotGraph(new HashSet<>(Arrays.asList(sig)));
 	}
 	
+	Map<Vertex, Map<Vertex, Boolean>> connectivity;
+	public boolean pathExists(String srcMethod, String dstMethod) {
+		Vertex src = vertices.get(srcMethod);
+		Vertex dst = vertices.get(dstMethod);
+		return pathExists(src, dst);
+	}
+	
+	public Set<APEXMethod> pathExists(Set<APEXMethod> srcs, Set<APEXMethod> dsts) {
+		Set<APEXMethod> result = new HashSet<>();
+		if (dsts.isEmpty())
+			return result;
+		Set<Vertex> destinations = new HashSet<>();
+		for (APEXMethod m : dsts)
+			destinations.add(vertices.get(m.signature));
+		
+		Map<Vertex, Boolean> dp = new HashMap<>();
+		for (APEXMethod src : srcs) {
+			if (canReach(dp, vertices.get(src.signature), destinations))
+				result.add(src);
+		}
+		
+		return result;
+	}
+	
+	private boolean canReach(Map<Vertex, Boolean> dp, Vertex from, Set<Vertex> dsts) {
+		if (dsts.contains(from))
+			return true;
+		if (dp.containsKey(from))
+			return dp.get(from);
+		dp.put(from, false); // prevent infinite loop
+		if (out_edges.containsKey(from))
+		for (Vertex next : out_edges.get(from))
+		if (canReach(dp, next, dsts)) {
+			dp.put(from, true);
+			return true;
+		}
+		return false;
+	}
+	
+	// find paths between two vertices using bi-directional BFS
+	public boolean pathExists(Vertex src, Vertex dst) {
+		Set<Vertex> visited = new HashSet<>();
+		Set<Vertex> setA = new HashSet<>(); // src set
+		Set<Vertex> setB = new HashSet<>(); // dst set
+		setA.add(src);
+		setB.add(dst);
+		boolean checkingSrc = true;
+		while (!setA.isEmpty() && !setB.isEmpty()) {
+			// always process the smaller queue
+			checkingSrc = setA.size()<=setB.size();
+			if (checkingSrc) {
+				Set<Vertex> todo = new HashSet<>();
+				for (Vertex v : setA) {
+					if (setB.contains(v))
+						return true;
+					if (out_edges.containsKey(v))
+					for (Vertex next : out_edges.get(v))
+					if (visited.add(next)) {
+						todo.add(next);
+					}
+				}
+				setA = todo;
+			} else {
+				Set<Vertex> todo = new HashSet<>();
+				for (Vertex v : setB) {
+					if (setA.contains(v))
+						return true;
+					if (in_edges.containsKey(v))
+					for (Vertex prev : in_edges.get(v))
+					if (visited.add(prev)) {
+						todo.add(prev);
+					}
+				}
+				setB = todo;
+			}
+		}
+		return false;
+	}
+	
 	// return the subgraph that contains all methods in set "sigs"
 	// and write numbers into the graph nodes
 	// and map the numbers into method signatures in the title
@@ -60,6 +139,7 @@ public class CallGraph {
 		//TODO
 		return null;
 	}
+	
 	
 	// return the subgraph that contains all methods in set "sigs"
 	public String getDotGraph(Set<String> sigs)

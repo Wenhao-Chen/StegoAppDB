@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import database.objects.DBDevice;
+import database.objects.DBImage;
 import database.objects.DBStego;
 import database.objects.MainDB;
 import database.stego.apps.Pictograph;
@@ -22,6 +23,21 @@ public class Validate{
 
 	public static void main(String[] args)
 	{
+		/*		File root = new File("E:\\stegodb_March2019");
+				String[] apps = {
+						"Pictograph", "MobiStego", "PocketStego", "SteganographyM"
+				};
+				for (File d : root.listFiles()) {
+					if (d.getName().startsWith("_"))
+						continue;
+					File stegoDir = new File(d, "stegos");
+					for (String app : apps) {
+						File appDir = new File(stegoDir, app);
+						F.delete(appDir);
+					}
+				}
+				P.pause("done");*/
+		
 		MainDB db = new MainDB("E:/stegodb_March2019");
 		Images.ui = ProgressUI.create("Image Operations", 20);
 		Pictograph.ui = ProgressUI.create("Pictograph", 20);
@@ -30,12 +46,15 @@ public class Validate{
 		DBStego.ui = ProgressUI.create("Stego Validation", 20);
 		
 		File skipF = new File("E:/stegodb_March2019/_records/SkipValidation.txt");
-		Set<String> toSkip = new HashSet<>();
-		toSkip.addAll(F.readLinesWithoutEmptyLines(skipF));
+		Set<String> toSkip = new HashSet<>(F.readLinesWithoutEmptyLines(skipF));
 		
 		Set<DBDevice> ready = new HashSet<>();
-		String jobPath = "E:/matlab_rgb2gray_jobs_"+P.getTimeString()+".txt";
-		PrintWriter matlabJobs = F.initPrintWriter(jobPath);
+		String jobPath = "";
+		PrintWriter matlabJobs = null;
+		if (!DBImage.useColorInput) {
+			jobPath = "E:/matlab_rgb2gray_jobs_"+P.getTimeString()+".txt";
+			matlabJobs = F.initPrintWriter(jobPath);
+		}
 		for (DBDevice d : db.devices)
 		{
 			//if (!d.name.equals("Pixel1-2"))
@@ -69,7 +88,7 @@ public class Validate{
 					continue;
 				}
 				
-				//// stage 3 - run matlab to convert color PNG to grayscale
+				//// stage 3 - generate center-cropped PNGs
 				int matlabJobCount = d.makePNGs(matlabJobs);
 				if (matlabJobCount > 0)
 				{
@@ -100,9 +119,11 @@ public class Validate{
 			else
 				ready.add(d);
 		}
-		matlabJobs.close();
+		if (matlabJobs != null)
+			matlabJobs.close();
 		List<String> list = new ArrayList<>();
-		for (DBDevice d : ready)	list.add(d.name);
+		for (DBDevice d : ready)
+			list.add(d.name);
 		F.write(list, skipF, false);
 		
 		//NOTE: generate the two CSVs for CSSM

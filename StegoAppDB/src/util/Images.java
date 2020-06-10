@@ -103,7 +103,7 @@ public class Images {
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			P.p("Error reading file: " + f.getAbsolutePath());
+			P.p("Error reading file: " + f.getAbsolutePath().replace('\\', '/'));
 		}
 		return null;
 	}

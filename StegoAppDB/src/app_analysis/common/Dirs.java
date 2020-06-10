@@ -13,6 +13,7 @@ public class Dirs {
 	
 	
 	public static final File apk_root = new File(Workspace, "apks");
+	public static final File ImageApps = new File(apk_root, "image_related");
 	public static final File Beautify = new File(apk_root, "beautifying");
 	public static final File Watermark = new File(apk_root, "watermarking");
 	public static final File PlayStore = new File(apk_root, "z_PlayStore");
@@ -22,6 +23,12 @@ public class Dirs {
 	
 	public static final File GraphRoot = new File(Workspace, "graphs");
 	public static final File ICFGRoot = new File(GraphRoot, "icfg");
+	public static final File NotesRoot = new File(Workspace, "notes");
+	public static final File ExasRoot = new File(Dirs.NotesRoot, "Exas");
+	
+	public static final File malwareAPKs = new File("F:\\VirusShare_Android_2018");
+	public static final File malwareDecoded = new File("F:\\VirusShare_Decoded");
+	
 	
 	
 	public static List<File> getFiles(File... dirs)
@@ -32,5 +39,9 @@ public class Dirs {
 			for (File f : dir.listFiles())
 				res.add(f);
 		return res;
+	}
+	
+	public static List<File> getStegoFiles() {
+		return getFiles(Stego_Github, Stego_Others, Stego_PlayStore);
 	}
 }

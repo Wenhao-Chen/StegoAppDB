@@ -18,7 +18,7 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 		if (invokeSig.equals("Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I"))
 		{
 			Expression s1 = params.get(0);
-			if (s1.isLiteral())
+			if (s1.isLiteral() && !s1.isSymbolic)
 			{
 				try
 				{
@@ -32,13 +32,20 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 				}
 			}
 			else {
-//				for (Expression p : params) {
-//					P.p("[p]  "+p.toString());
-//				}
-//				P.pause();
-				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+//				P.p("-parse int: "+s1.toString());
+//				APEXObject obj = vm.heap.get(s1.getObjID());
+//				obj.print();
+//				//P.pause();
+				Expression strExp = params.get(0);
+				if (strExp.isBinaryBitOfImageData) {
+					vm.recentResult = strExp.clone();
+//					P.p("--- parse int:");
+//					P.p(vm.recentResult.toString());
+//					P.pause();
+				}
+				else
+					vm.createSymbolicMethodReturn("I", invokeSig, params, s);
 			}
-				
 		}
 		else if (invokeSig.equals("Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;"))
 		{
@@ -46,6 +53,18 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 			APEXObject obj = vm.createNewObject("Ljava/lang/Integer;", "wrapper", s.getUniqueID(), i.isSymbolic);
 			obj.primitiveExpr = i.clone();
 			vm.recentResult = obj.reference;
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/Integer;->valueOf(Ljava/lang/String;I)Ljava/lang/Integer;") || 
+				 invokeSig.contentEquals("Ljava/lang/Integer;->valueOf(Ljava/lang/String;)Ljava/lang/Integer;")) {
+			vm.createSymbolicMethodReturn("Ljava/lang/Integer;", invokeSig, params, s);
+			Expression strExp = params.get(0);
+//			P.p("-value of "+strExp.toString());
+//			P.p(s.getUniqueID());
+//			P.pause();
+			if (strExp.isReference() && vm.heap.get(strExp.getObjID()).imageDataExp!=null) {
+				APEXObject obj = vm.heap.get(vm.recentResult.getObjID());
+				obj.primitiveExpr = vm.heap.get(strExp.getObjID()).imageDataExp.clone();
+			}
 		}
 		else if (invokeSig.equals("Ljava/lang/Integer;->intValue()I"))
 		{
@@ -55,10 +74,46 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 				return;
 			}
 			APEXObject obj = vm.heap.get(params.get(0).getObjID());
-			if (obj.primitiveExpr != null)
+//			if (s.index==127) {
+//				P.p("prim: "+(obj.primitiveExpr != null));
+//				if (obj.primitiveExpr!=null)
+//					P.p(obj.primitiveExpr.toString());
+//			}
+			if (obj.primitiveExpr != null) {
 				vm.recentResult = obj.primitiveExpr.clone();
+			}
 			else
 				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/Integer;->toBinaryString(I)Ljava/lang/String;")) {
+			Expression intExp = params.get(0);
+			if (intExp.isLiteral() && !intExp.isSymbolic) {
+				try
+				{
+					String str = Integer.toBinaryString(Arithmetic.parseInt(intExp.getLiteralValue()));
+					vm.recentResult = Expression.newLiteral("Ljava/lang/String;", str);
+				}
+				catch (Exception e)
+				{
+					vm.crashed = true;
+					vm.shouldStop = true;
+				}
+			}
+			else {
+				vm.createSymbolicMethodReturn("Ljava/lang/String;", invokeSig, params, s);
+				String expS = intExp.toString();
+				// if the string is the binary string of an image data, remember the image data expression
+				if (expS.contains("Bitmap.getPixel") || expS.contains("Bitmap;->getPixel")) {
+					APEXObject str = vm.heap.get(vm.recentResult.getObjID());
+					str.imageDataExp = intExp.clone();
+					
+					//P.p("- binary string: "+params.get(0).toString());
+//					P.p(s.getUniqueID());
+//					P.pause();
+				}
+			}
+			
+			
 		}
 		else if (invokeSig.equals("Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;"))
 		{
@@ -90,6 +145,10 @@ public class PrimitiveWrapperSolver extends SolverInterface {
 		}
 		else if (invokeSig.equals("Ljava/lang/Boolean;->booleanValue()Z"))
 		{
+			if (params.get(0).getObjID() == null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXObject obj = vm.heap.get(params.get(0).getObjID());
 			if (obj.primitiveExpr != null)
 				vm.recentResult = obj.primitiveExpr;

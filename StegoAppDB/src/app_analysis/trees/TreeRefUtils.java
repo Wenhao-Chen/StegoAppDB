@@ -19,18 +19,32 @@ public class TreeRefUtils {
 	public static Map<String, Expression> trees;
 	static {
 		init();
-		
 	}
 	
 	static final void init() {
-		trees = new LinkedHashMap<>();
 		
+		
+		trees = new LinkedHashMap<>();
 		// one step embedding
-		trees.put("one_step_1", deserialize("+", "X", "literal", "", "", "0x1"));
-		trees.put("one_step_2", deserialize("+", "X", "literal", "", "", "-0x1"));
-		trees.put("one_step_3", deserialize("|", "X", "literal", "", "", "0x1"));
-		trees.put("one_step_4", deserialize("|", "X", "<<", "", "", "literal", "X", "0x1"));
-		trees.put("one_step_5", deserialize("&", "X", "~", "", "", "<<", "", "literal", "X", "0x1"));
+		trees.put("one_step_1", deserialize("+", "Y", "literal", "", "", "0x1"));
+		trees.put("one_step_2", deserialize("+", "&", "literal", "Y", "literal", "0x1", "", "", "", "0xff"));
+		trees.put("one_step_3", deserialize("+", "Y", "literal", "", "", "-0x1"));
+		trees.put("one_step_4", deserialize("+", "&", "literal", "Y", "literal", "-0x1", "", "", "", "0xff"));
+		trees.put("one_step_5", deserialize("|", "Y", "literal", "", "", "0x1"));
+		trees.put("one_step_6", deserialize("|", "&", "literal", "Y", "literal", "0x1", "", "", "", "0xff"));
+		trees.put("one_step_7", deserialize("|", "Y", "<<", "", "", "literal", "X", "0x1"));
+		trees.put("one_step_8", deserialize("|", "&", "<<", "Y", "literal", "literal", "X", "", "", "0xff", "", "0x1", ""));
+		trees.put("one_step_9", deserialize("&", "Y", "~", "", "", "<<", "", "literal", "X", "0x1"));
+		
+		trees.put("special_1", deserialize("+", "Y", "*", "","", "*","X","literal","X","","","0x1"));
+		trees.put("special_2", deserialize("+", "Y", "*", "","", "*","X","literal","X","","","-0x1"));
+		trees.put("special_3",  new Expression("I", "return")
+								.add("Landroid/graphics/Color;->argb(IIII)I")
+								.add(deserialize("literal", "0xfe"))
+								.add(deserialize("return", "$Red", "$GetPixel"))
+								.add(deserialize("return", "$Green", "$GetPixel"))
+								.add(deserialize("return", "$Blue", "$GetPixel")));
+		
 		
 		List<Expression> twoStep = new ArrayList<>();
 		twoStep.add(deserialize("|", "X"));
@@ -97,13 +111,14 @@ public class TreeRefUtils {
 		return res;
 	}
 	
-	// NOTE: somehow normalization 
+
 	// return value: whether this tree contains getPixel() call
-	static boolean normalize(Expression exp) {
+	public static boolean normalize(Expression exp) {
 		// turn "return - getPixel()" to "Pixel"
 		// put "literal - xx" to the right child
 		// put "$GetPixel" to the left???
-		
+		if (exp == null)
+			return false;
 		if (exp.root.contentEquals("return")) {
 			String sig = exp.children.get(0).root;
 			if (sig.contentEquals("Landroid/graphics/Bitmap;->getPixel(II)I")) {
@@ -147,6 +162,52 @@ public class TreeRefUtils {
 			}
 		}
 		return hasGetPixel;
+	}
+	
+	// in addition to normalization, also reduce the non-getPixel()
+	// nodes to X
+	public static void normalizeAndTrim(Expression exp) {
+		normalize(exp);
+		trim(exp);
+	}
+	
+	
+	public static Expression trim2(Expression exp) {
+		if (exp == null)
+			return null;
+		
+		if (exp.root.equals("literal") || exp.root.equals("reference"))
+			exp.children.clear();
+		if (exp.root.equals("return") && 
+				exp.children.get(0).root.equals("Landroid/graphics/Bitmap;->getPixel(II)I")) {
+			exp.children.clear();
+			exp.add("Landroid/graphics/Bitmap;->getPixel(II)I")
+			   .add("reference").add("literal").add("literal");
+		}
+		for (Expression child : exp.children)
+			trim2(child);
+		
+		if (exp.children.size()==2 && exp.children.get(0).root.equals("literal") && exp.children.get(1).root.equals("literal")) {
+			exp.root = "literal";
+			exp.children.clear();
+		}
+		
+		return exp;
+	}
+	
+	public static Expression trim(Expression exp) {
+		if (exp == null)
+			return null;
+		if (exp.root.equals("literal") || exp.root.equals("reference"))
+			exp.children.clear();
+		if (exp.root.equals("return") && 
+				exp.children.get(0).root.equals("Landroid/graphics/Bitmap;->getPixel(II)I")) {
+			exp.children.clear();
+			exp.add("reference").add("literal").add("literal");
+		}
+		for (Expression child : exp.children)
+			trim(child);
+		return exp;
 	}
 
 	static Expression deserialize(String... s) {

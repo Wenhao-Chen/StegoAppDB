@@ -35,14 +35,20 @@ public class BitmapSolver extends SolverInterface{
 			{
 				int xx = Arithmetic.parseInt(x.toString());
 				int yy = Arithmetic.parseInt(y.toString());
-				if (bitmap.concreteBitmap[xx][yy]!=null)
+				if (xx<bitmap.concreteBitmap.length && yy<bitmap.concreteBitmap[0].length
+						&& bitmap.concreteBitmap[xx][yy]!=null)
 					vm.recentResult = bitmap.concreteBitmap[xx][yy];
 				return;
 			}
 			vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			vm.recentResult.related_to_pixel = true;
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->getPixels([IIIIIII)V"))
 		{
+			if (mc.read(paramRegs[0]).getObjID() == null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXObject bitmap = vm.heap.get(mc.read(paramRegs[0]).getObjID());
 			APEXArray arr = (APEXArray)vm.heap.get(params.get(1).getObjID());
 			arr.isFromBitmap = true;
@@ -268,38 +274,28 @@ public class BitmapSolver extends SolverInterface{
 			}
 			else
 			{
-				P.p("creating scaled bitmap from a non-existing bitmap???");
-				P.pause();
+				vm.crashed = vm.shouldStop = true;
+				return;
 			}
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->createScaledBitmap(Landroid/graphics/Bitmap;IIZ)Landroid/graphics/Bitmap;"))
 		{
 			String srcID = params.get(0).getObjID();
-			if (srcID!=null)
-			{
-				APEXObject bitmap = vm.heap.get(srcID);
-				APEXObject res = vm.createNewObject("Landroid/graphics/Bitmap;", "createScaledBitmap(BitmapIIZ)", s.getUniqueID(), false);
-				res.width = params.get(1).clone();
-				res.height = params.get(2).clone();
-				vm.recentResult = res.reference;
-				
-				BitmapAccess a = new BitmapAccess(s.getUniqueID());
-				a.action = "created_from_bitmap";
-				a.copied_from = bitmap.reference;
-				res.bitmapHistory.add(a);
-				vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
-				
-/*				P.p("\n\n--------- create scaled bitmap");
-				P.p("*** source bitmap: " + bitmap.objID);
-				P.p("*** new width: "+res.width.toString());
-				P.p("*** new height: "+res.height.toString());
-				P.pause();*/
+			if (srcID == null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
 			}
-			else
-			{
-				P.p("creating scaledbitmap from a null??");
-				P.pause();
-			}
+			APEXObject bitmap = vm.heap.get(srcID);
+			APEXObject res = vm.createNewObject("Landroid/graphics/Bitmap;", "createScaledBitmap(BitmapIIZ)", s.getUniqueID(), false);
+			res.width = params.get(1).clone();
+			res.height = params.get(2).clone();
+			vm.recentResult = res.reference;
+			
+			BitmapAccess a = new BitmapAccess(s.getUniqueID());
+			a.action = "created_from_bitmap";
+			a.copied_from = bitmap.reference;
+			res.bitmapHistory.add(a);
+			vm.bitmapAccess.add(new BitmapAccess(s.getUniqueID(), "createBitmap", invokeSig, params));
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->getWidth()I"))
 		{
@@ -346,6 +342,13 @@ public class BitmapSolver extends SolverInterface{
 			buffer.bitmapReference = params.get(0).clone();
 			
 			APEXObject bitmap = vm.heap.get(buffer.bitmapReference.getObjID());
+			// if this buffer is wrapping an array
+			// connect the array with the bitmap
+			if (buffer.arrayReference != null) {
+				APEXArray arr = (APEXArray) vm.heap.get(buffer.arrayReference.getObjID());
+				arr.isFromBitmap = true;
+				arr.bitmapReference = bitmap.reference;
+			}
 			BitmapAccess a = new BitmapAccess(s.getUniqueID());
 			a.action = "getPixelsToBuffer";
 			for (Expression p : params)

@@ -76,6 +76,7 @@ public class MainDB {
 	private void loadRecords()
 	{
 		deviceNames = F.readLines(new File(recordsDir, "DeviceNames"));
+		Collections.sort(deviceNames);
 		//NOTE: load other records such as processing history
 		devicesWithValidatedSceneContent = new HashSet<>();
 		List<String> sceneContentValidationRecord = F.readLines(new File(recordsDir, "SceneContentValidated.txt"));

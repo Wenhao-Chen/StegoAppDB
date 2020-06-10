@@ -14,7 +14,7 @@ public class Template {
 	static final String selfie_root = apk_root+"/beautifying";
 	
 	static final File root = new File("C:\\workspace\\app_analysis");
-	static final File notesDir = new File(root, "notes");
+	public static final File notesDir = new File(root, "notes");
 
 	public static List<File> getAPKs()
 	{

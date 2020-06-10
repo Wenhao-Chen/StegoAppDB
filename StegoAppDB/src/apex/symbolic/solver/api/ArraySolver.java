@@ -5,6 +5,7 @@ import java.util.List;
 import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXArray;
 import apex.symbolic.APEXObject;
+import apex.symbolic.APEXObject.BitmapAccess;
 import apex.symbolic.Expression;
 import apex.symbolic.MethodContext;
 import apex.symbolic.VM;
@@ -18,6 +19,10 @@ public class ArraySolver extends SolverInterface{
 	{
 		if (invokeSig.equals("Ljava/lang/reflect/Array;->newInstance(Ljava/lang/Class;[I)Ljava/lang/Object;"))
 		{
+			if (params.get(1).getObjID()==null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			String eleType = "";
 			if (params.get(0).isLiteral())
 			{
@@ -40,11 +45,29 @@ public class ArraySolver extends SolverInterface{
 				if (eleType.isEmpty())
 				{
 					P.p("Can't solve the element type of Array.newInstance(Class, int...) call");
+					P.p(s.getUniqueID()+" "+s.smali);
 					typeClass.print();
 					P.pause();
 				}
 			}
-			// NOTE: only assigning the first dimension for now...
+			APEXObject dimenObj = vm.heap.get(params.get(1).getObjID());
+			if (!(dimenObj instanceof APEXArray)) {
+				vm.shouldStop = vm.crashed = true;
+				return;
+			}
+			// modify the array element type if we know the number of dimensions of the array
+			// we should know the number most of the time
+			String basicEleType = eleType;
+			boolean canInitialize = false;
+			APEXArray dimen = (APEXArray)dimenObj;
+			if (P.isInteger(dimen.length.toString())) {
+				int layers = Arithmetic.parseInt(dimen.length.toString());
+				for (int i=0; i<layers-1; i++)
+					eleType = "["+eleType;
+				//dimen.aget(index, vm, s)
+				// if all dimensions are literal numbers, populate the
+				// array now
+			}
 			APEXArray arr = vm.createNewArray("["+eleType, "Array.newInstance", params.get(1), s.getUniqueID()+" "+s.smali);
 			vm.recentResult = arr.reference;
 			//P.pause();
@@ -57,6 +80,11 @@ public class ArraySolver extends SolverInterface{
 		}
 		else if (invokeSig.equals("Ljava/nio/ByteBuffer;->array()[B"))
 		{
+			if (params.get(0).getObjID() == null)
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXObject buffer = vm.heap.get(params.get(0).getObjID());
 			APEXArray arr = vm.createNewArray("[B", "ByteBuffer.array()", buffer.bufferLength, s.getUniqueID());
 			if (buffer.isFromBitmap)
@@ -74,7 +102,12 @@ public class ArraySolver extends SolverInterface{
 				vm.crashed = vm.shouldStop = true;
 				return;
 			}
-			APEXArray arr = (APEXArray) vm.heap.get(params.get(0).getObjID());
+			APEXObject obj = vm.heap.get(params.get(0).getObjID());
+			if (!(obj instanceof APEXArray)) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXArray arr = (APEXArray) obj;
 			APEXObject buffer = vm.createNewObject("Ljava/nio/ByteBuffer;", "ByteBuffer.wrap([B)", s.getUniqueID(), false);
 			buffer.bufferLength = arr.length.clone();
 			buffer.arrayReference = arr.reference.clone();
@@ -141,8 +174,19 @@ public class ArraySolver extends SolverInterface{
 		}
 		else if (invokeSig.equals("Ljava/lang/System;->arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"))
 		{
-			APEXArray src = (APEXArray) vm.heap.get(params.get(0).getObjID());
-			APEXArray dst = (APEXArray) vm.heap.get(params.get(2).getObjID());
+			if (params.get(0).getObjID()==null || params.get(2).getObjID()==null) {
+				vm.crashed = vm.shouldStop = true;
+			}
+			APEXObject srcObj = vm.heap.get(params.get(0).getObjID());
+			APEXObject dstObj = vm.heap.get(params.get(2).getObjID());
+			if (srcObj == null || !(srcObj instanceof APEXArray) || dstObj == null ||
+					!(dstObj instanceof APEXArray))
+			{
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXArray src = (APEXArray) srcObj;
+			APEXArray dst = (APEXArray) dstObj;
 			Expression srcPos = params.get(1);
 			Expression dstPos = params.get(3);
 			Expression length = params.get(4);
@@ -167,6 +211,142 @@ public class ArraySolver extends SolverInterface{
 					dst.aput(s, writeIndex, get, vm);
 				}
 			}
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/String;->toCharArray()[C")) {
+			vm.createSymbolicMethodReturn("[C", invokeSig, params, s);
+			APEXArray arr = (APEXArray) vm.heap.get(vm.recentResult.getObjID());
+			arr.isCharArrayOfString = true;
+			arr.strExp = params.get(0).clone();
+		}
+		else if (invokeSig.equals("Ljava/lang/String;->valueOf(C)Ljava/lang/String;")) {
+			vm.recentResult = params.get(0).clone();
+			vm.recentResult.type = "Ljava/lang/String;";
+			vm.recentResult.isSymbolic = true;
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/String;->substring(II)Ljava/lang/String;")) {
+			if (params.get(0).isReference()) {
+				APEXObject str = vm.heap.get(params.get(0).getObjID());
+				if (str.imageDataExp != null) {
+					Expression from = params.get(1), to = params.get(2);
+					Expression bitsToShift = null;
+					if (from.toString().contentEquals("0") && to.root.contentEquals("-")) {
+						// Color.red().toBinaryString().substring(0, x-a) ->  red >> a << a
+						// gonna risk it and not check the x in x-a
+						bitsToShift = to.children.get(1).clone();
+					}
+					else if (from.toString().contentEquals("0") && to.toString().contentEquals("7") &&
+							str.imageDataExp.isReturnValue() && 
+							str.imageDataExp.getInvokeSig().startsWith("Landroid/graphics/Color;->")) {
+						bitsToShift = Expression.newLiteral("I", "0x1");
+					}
+					
+					if (bitsToShift != null) {
+						Expression newImageData = new Expression("<<");
+						newImageData.type = str.imageDataExp.type;
+						Expression shr = new Expression(">>");
+						shr.add(str.imageDataExp).add(bitsToShift.clone());
+						newImageData.add(shr).add(bitsToShift.clone());
+						str.imageDataExp = newImageData;
+						vm.recentResult = str.reference.clone();
+						return;
+					}
+				}
+			}
+			vm.createSymbolicMethodReturn("Ljava/lang/String;", invokeSig, params, s);
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;")) {
+			if (params.get(0).getObjID()==null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXObject sb = vm.heap.get(params.get(0).getObjID());
+			Expression strExp = params.get(1);
+			
+			// first try adding to most recent
+			boolean appended = false;
+			List<Expression> history = sb.stringBuilderAppendHistory;
+			if (!history.isEmpty() && strExp.isLiteral()) {
+				Expression prevStr = history.get(history.size()-1);
+				if (prevStr.isLiteral()) {
+					prevStr.children.get(0).root += strExp.toString();
+					appended = true;
+				} else if (prevStr.getObjID()!=null) {
+					APEXObject prevS = vm.heap.get(prevStr.getObjID());
+					if (prevS.imageDataExp != null && P.isInteger(strExp.toString())) { // prev string is the bit string of an image data
+						int pl = Arithmetic.parseInt(strExp.toString());
+						Expression newImageData = new Expression("|");
+						newImageData.type = prevS.imageDataExp.type;
+						newImageData.add(prevS.imageDataExp).add(Expression.newLiteral("I", pl+""));
+						prevS.imageDataExp = newImageData;
+						appended = true;
+					}
+				}
+			}
+			if (!appended)
+				history.add(strExp.clone());
+//			if (s.index==105 || s.index==106) {
+//				P.p("-- appended:");
+//				P.p(strExp.root);
+//				P.p(s.getUniqueID());
+//				P.p("prev size was "+(history.size()-1));
+//				P.pause();
+//			}
+			
+			vm.recentResult = sb.reference.clone();
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/StringBuilder;->toString()Ljava/lang/String;")) {
+			if (params.get(0).getObjID()==null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
+			APEXObject sb = vm.heap.get(params.get(0).getObjID());
+			if (!sb.stringBuilderAppendHistory.isEmpty()) {
+				vm.recentResult = sb.stringBuilderAppendHistory.get(sb.stringBuilderAppendHistory.size()-1).clone();
+			}
+			else
+				vm.createSymbolicMethodReturn("Ljava/lang/String;", invokeSig, params, s);
+		}
+		else if (invokeSig.contentEquals("Ljava/lang/String;->concat(Ljava/lang/String;)Ljava/lang/String;")) {
+			Expression s1 = params.get(0), s2 = params.get(1);
+			
+			boolean transformed = false;
+			if (s1.isLiteral() && s2.isReference()) {
+				//NOTE: this is for the special case of appending "0" 
+				// 		at the beginning of pixel binary strings
+				APEXObject str = vm.heap.get(s2.getObjID());
+				if (str.imageDataExp != null) {
+					vm.recentResult = str.reference.clone();
+					transformed = true;
+				}
+			}
+			else if (s1.isReference()) {
+				APEXObject str = vm.heap.get(s1.getObjID());
+				if (str.imageDataExp != null) {
+					//NOTE: this is for the case where payload is being
+					// appended to image data
+					Expression payload = new Expression("I", "return")
+							.add("Ljava/lang/Integer;->parseInt(Ljava/lang/String;I)I")
+							.add(s2.clone()).add(Expression.newLiteral("I", "0x2"));
+					Expression newImageData = new Expression(str.imageDataExp.type, "|")
+							.add(str.imageDataExp.clone()).add(payload);
+					str.imageDataExp = newImageData;
+					vm.recentResult = str.reference.clone();
+					// public BitmapAccess(String stmtID, String action, Expression x, Expression y, Expression c)
+					Expression fakeX = Expression.newLiteral("I", "0x0");
+					str.bitmapHistory.add(new BitmapAccess(
+							s.getUniqueID(), "setPixel", fakeX, fakeX, str.imageDataExp.clone()));
+					//P.pause(str.imageDataExp.toString());
+					transformed = true;
+				}
+			}
+			if (!transformed)
+				vm.createSymbolicMethodReturn("Ljava/lang/String;", invokeSig, params, s);
+		}
+		else if (invokeSig.equals("Ljava/lang/String;->hashCode()I")) {
+			if (params.get(0).isLiteral())
+				vm.recentResult = Expression.newLiteral("I", params.get(0).toString().hashCode()+"");
+			else
+				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
 		}
 		else
 		{

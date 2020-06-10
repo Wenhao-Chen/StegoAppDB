@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import apex.symbolic.Expression;
+
 
 public class APEXStatement {
 

@@ -35,8 +35,8 @@ public class DBDevice {
 		index = parts[1];
 		this.originalsDir = new File(deviceDir, "originals");
 		this.originalsDir.mkdirs();
-		this.grayPNGDir = new File(deviceDir, "cropped");
-		this.grayPNGDir.mkdirs();
+		this.colorPNGDir = new File(deviceDir, "cropped");
+		this.colorPNGDir.mkdirs();
 		this.stegosDir = new File(deviceDir, "stegos");
 		this.stegosDir.mkdirs();
 		String[] stegoApps = isAndroid()?DBStego.AndroidApps:DBStego.iOSApps;
@@ -49,8 +49,8 @@ public class DBDevice {
 		deviceAuxDir.mkdirs();
 		this.tifDir = new File(deviceAuxDir, "tif");
 		this.tifDir.mkdirs();
-		this.colorPNGDir = new File(deviceAuxDir, "colorPNG");
-		this.colorPNGDir.mkdirs();
+		this.grayPNGDir = new File(deviceAuxDir, "grayPNG");
+		this.grayPNGDir.mkdirs();
 		this.exifDir = new File(deviceAuxDir, "exif");
 		this.exifDir.mkdirs();
 		this.validationRecordF = new File(db.validationRecordsDir, "records_"+name+".csv");

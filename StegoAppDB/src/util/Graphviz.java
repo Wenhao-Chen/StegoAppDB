@@ -6,6 +6,12 @@ import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import apex.APEXApp;
 import apex.bytecode_wrappers.APEXMethod;
@@ -22,6 +28,7 @@ public class Graphviz {
 	public static String[] defaultKeywords = {"getPixel", "setPixel"};
 	
 	public static ProgressUI ui = ProgressUI.create("Graphviz", 20);
+	private static ExecutorService executor = Executors.newFixedThreadPool(4);
 	
 	
 	public static void main(String[] args)
@@ -112,10 +119,6 @@ public class Graphviz {
 		APEXMethod m = app.getMethod(methodSig);
 		if (m == null || methodsThatTakeTooLong.contains(methodSig))
 			return null;
-		if (ui != null)
-		{
-			ui.newLine("Making CFG for "+methodSig+"...");
-		}
 		ControlFlowGraph cfg = new ControlFlowGraph(app, m);
 		String c = Dalvik.DexToJavaName(methodSig.substring(0, methodSig.indexOf("->")));
 		String mm = methodSig.substring(methodSig.indexOf("->")+2, methodSig.indexOf("(")).replace("<", "").replace(">", "");
@@ -124,10 +127,6 @@ public class Graphviz {
 		File dir = new File(defaultOutDir, app.apk.getName());
 		
 		File f = makeDotGraph(cfg.getDotGraphString(defaultKeywords), c+"_"+mm+"_"+params.hashCode(), dir, redo);
-		if (ui != null)
-		{
-			ui.appendToLastLine("Done.");
-		}
 		//P.p("CFG done: "+f.getAbsolutePath());
 		return f;
 	}
@@ -156,21 +155,53 @@ public class Graphviz {
 		if (pdfFilePath.contains(" "))
 			pdfFilePath = "\""+pdfFilePath+"\"";
 		
-		try
-		{
-			PrintWriter out = new PrintWriter(new FileWriter(dotFile));
-			out.write(dotGraphString);
-			out.flush();
-			out.close();
-			//dot -Tpdf graph1.dot -o graph1.pdf
-			P.exec(toolPath + " -Tpdf " + dotFilePath + " -o " + pdfFilePath, true);
-			return pdfFile;
+		
+		Future<?> f = executor.submit(
+				new DotGraphCallable(dotFile, dotFilePath, pdfFilePath, dotGraphString));
+		try {
+			f.get(10, TimeUnit.SECONDS);
 		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
+		catch (InterruptedException | ExecutionException | TimeoutException e) {
+			return null;
 		}
-		return null;
+		
+		if (ui != null)
+			ui.appendToLastLine(" Done.");
+		return pdfFile;
+	}
+	
+	static class DotGraphCallable implements Runnable {
+		File dotFile;
+		String dotFilePath, pdfFilePath, dotGraphString;
+		DotGraphCallable(File dotFile, String dotFilePath, String pdfFilePath, String dotGraphString) {
+			this.dotFile = dotFile;
+			this.dotFilePath = dotFilePath;
+			this.pdfFilePath = pdfFilePath;
+			this.dotGraphString = dotGraphString;
+		}
+		@Override
+		public void run()
+		{
+			try
+			{
+				PrintWriter out = new PrintWriter(new FileWriter(dotFile));
+				out.write(dotGraphString);
+				out.flush();
+				out.close();
+				if (dotFile.length()>200000) // 200 KB
+					return;
+				int id = dotFile.getName().hashCode();
+				//P.pf("dotgraph %d: [*.dot length %d]\n", id, dotFile.length());
+				//dot -Tpdf graph1.dot -o graph1.pdf
+				P.exec(toolPath + " -Tpdf " + dotFilePath + " -o " + pdfFilePath, true);
+				//P.pf("dotgraph %d done\n", id);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
 	}
 	
 }

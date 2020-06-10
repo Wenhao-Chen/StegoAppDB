@@ -251,10 +251,10 @@ public class DBScene {
 	{
 		int count = 0;
 		for (DBImage image : raw_images)
-			if (image.png!=null && image.png.exists())
+			if (image.colorPNG!=null && image.colorPNG.exists())
 				count++;
 		for (DBImage image : jpeg_images)
-			if (image.png!=null && image.png.exists())
+			if (image.colorPNG!=null && image.colorPNG.exists())
 				count++;
 		return count;
 	}

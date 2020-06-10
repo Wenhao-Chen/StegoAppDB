@@ -10,7 +10,9 @@ import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -22,7 +24,6 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import util.P;
@@ -30,7 +31,7 @@ import util.P;
 @SuppressWarnings("serial")
 public class AndroidCommandCenter extends JPanel{
 
-	static Map<String, String> deviceIDs;
+	public static Map<String, String> deviceIDs;
 	
 	static {
 		deviceIDs = new LinkedHashMap<>();
@@ -155,13 +156,16 @@ public class AndroidCommandCenter extends JPanel{
 		}
 		void read(InputStream stream)
 		{
+			SimpleDateFormat formatter = new SimpleDateFormat("[MM/dd HH:mm:ss]");  
+		    
 			try
 			{
 				BufferedReader in = new BufferedReader(new InputStreamReader(stream));
 				String line;
 				while ((line=in.readLine())!=null)
 				{
-					newLine(line);
+					String time = formatter.format(new Date());
+					newLine(time+" "+line);
 				}
 				in.close();
 			}
