@@ -35,6 +35,9 @@ public class Pictograph {
 	
 	public static void main(String[] args)
 	{
+		int x = -0x1000000;
+		System.out.println(Integer.toBinaryString(x));
+		P.pause();
 		ui = ProgressUI.create("Pictograph", 20);
 		File dir = new File("E:/stegodb_March2019/iPhone6s-1/stegos/Pictograph");
 		for (File f : dir.listFiles())

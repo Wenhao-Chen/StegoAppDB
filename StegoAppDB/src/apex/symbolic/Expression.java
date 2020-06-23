@@ -56,6 +56,13 @@ public class Expression implements Serializable{
 		related_to_pixel = false;
 	}
 	
+	public int nodeCount() {
+		int res = 1;
+		for (Expression childExpression : children)
+			res += childExpression.nodeCount();
+		return res;
+	}
+	
 	public File toDotGraph(String name, File dir, boolean trimmed)
 	{
 		File dotFile = new File(dir, name+(trimmed?"_trimmed":"_full")+".dot");

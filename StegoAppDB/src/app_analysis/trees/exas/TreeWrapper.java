@@ -33,6 +33,12 @@ public class TreeWrapper {
 		this.alreadyTrimmed = alreadyTrimmed;
 	}
 	
+	public static int getOriginalTreeCount(String a) {
+		File root1 = new File("C:\\workspace\\app_analysis\\notes\\ExpressionTrees");
+		File dir1 = new File(root1, a);
+		return dir1.exists()?dir1.list().length : 0;
+	}
+	
 	public int getSize() {
 		if (size == -1) {
 			size = countNodes(getExpressionTrimmed());
@@ -48,9 +54,12 @@ public class TreeWrapper {
 		return count;
 	}
 	
+	public static int hash(Expression exp) {
+		return exp.toStringRaw().hashCode();
+	}
 	public int getHash() {
 		if (hash == 0)
-			hash = getExpressionTrimmed()==null?0:getExpressionTrimmed().toStringRaw().hashCode();
+			hash = getExpressionTrimmed()==null?0:hash(getExpressionTrimmed());
 		return hash;
 	}
 	

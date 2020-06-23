@@ -795,5 +795,9 @@ public class HelperUI extends JPanel{
 	}
 	
 	static void go() { UI.createAndShow(new HelperUI(), "App Analysis Helper"); }
-	public static void main(String[] args) { go(); }
+	public static void main(String[] args) { 
+		System.setProperty("awt.useSystemAAFontSettings","off"); 
+	    System.setProperty("swing.aatext", "false");
+	    go();
+	}
 }

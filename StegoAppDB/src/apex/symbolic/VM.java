@@ -23,6 +23,7 @@ import apex.symbolic.solver.Condition;
 import apex.symbolic.solver.Logic;
 import apex.symbolic.solver.api.APISolver;
 import apex.symbolic.solver.api.BitmapSolver;
+import app_analysis.common.Dirs;
 import ui.ProgressUI;
 import util.Dalvik;
 import util.P;
@@ -899,6 +900,11 @@ public class VM extends VM_interface{
 		case "aput-char"               : 	// vAA, vBB, vCC
 		case "aput-short"              : 	// vAA, vBB, vCC
 		{
+			if (s.index==35) {
+				Expression val = mc.read(args[0]);
+				val.toDotGraph("temp", Dirs.Desktop, false);
+				P.pause("here");
+			}
 			Expression arrObj = mc.read(args[1]);
 			if (!arrObj.isReference())
 			{

@@ -32,8 +32,8 @@ public class ExtractExpressionTrees_stegos {
 			ui = ProgressUI.create("Method", 20);
 		ProgressUI ui_overall = ProgressUI.create("App", 20);
 		
-		appToDo = "com.nitramite";
-		entryPointMode = 2; // mode 1 trace back to CG entry points, mode 2 just takes the methods that contain invoke-bitmap APIs
+		appToDo = "com.aksel";
+		entryPointMode = 1; // mode 1 trace back to CG entry points, mode 2 just takes the methods that contain invoke-bitmap APIs
 		File treeRoot = new File(Template.notesDir, "ExpressionTrees");
 		File notesRoot = new File(Template.notesDir, "Notes");
 		List<File> apks = Dirs.getFiles(Dirs.Stego_Github, Dirs.Stego_Others, Dirs.Stego_PlayStore);

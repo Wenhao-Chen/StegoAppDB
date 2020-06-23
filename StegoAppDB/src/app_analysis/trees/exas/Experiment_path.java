@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
+import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.shortestpath.AllDirectedPaths;
 import org.jgrapht.graph.DefaultDirectedGraph;
 
@@ -87,6 +88,8 @@ public class Experiment_path {
 		Set<APEXBlock> readers = new HashSet<>();
 		Set<APEXBlock> writers = new HashSet<>();
 		ICFG(APEXApp app) {
+			if (app.malfunction)
+				return;
 			for (APEXClass c : app.getNonLibraryClasses())
 			for (APEXMethod m : c.methods.values()) {
 				// first make intra-CFG for each read/write methods
@@ -134,42 +137,53 @@ public class Experiment_path {
 		void addEdge(APEXBlock b1, APEXBlock b2, String label) {
 			graph.addEdge(b1, b2, new CFGEdge(b1, b2, label));
 		}
+		boolean hasPath() {
+			if (readers.isEmpty() || writers.isEmpty())
+				return false;
+			ConnectivityInspector<APEXBlock, CFGEdge> ci = new ConnectivityInspector<>(graph);
+			for (APEXBlock r : readers)
+			for (APEXBlock w : writers)
+			if (ci.pathExists(r, w))
+				return true;
+			return false;
+		}
 	}
 	
 	static void analyzeCFG(APEXApp app, String label) {
 		ICFG icfg = new ICFG(app);
-		P.p(app.packageName+"  "+icfg.readers.size()+"  "+icfg.writers.size());
-		P.p("  -- readers --");
-		for (APEXBlock b : icfg.readers)
-			P.p("    "+b.m.signature+" "+b.statements.get(0).index);
-		P.p("  -- writers --");
-		for (APEXBlock b : icfg.writers)
-			P.p("    "+b.m.signature+" "+b.statements.get(0).index);
-		AllDirectedPaths<APEXBlock, CFGEdge> pathFinder = new AllDirectedPaths<>(icfg.graph);
-		List<GraphPath<APEXBlock, CFGEdge>> paths = 
-				pathFinder.getAllPaths(icfg.readers, icfg.writers, true, 100);
-		Map<APEXBlock, Map<APEXBlock, Integer>> pathCount = new HashMap<APEXBlock, Map<APEXBlock,Integer>>();
-		for (GraphPath<APEXBlock, CFGEdge> path : paths) {
-			APEXBlock from = path.getStartVertex();
-			APEXBlock to = path.getEndVertex();
-			Map<APEXBlock, Integer> count = pathCount.computeIfAbsent(from, k-> new HashMap<>());
-			count.put(to, count.getOrDefault(to, 0)+1);
-		}
-		P.p("  -- number of paths: "+paths.size());
-		for (APEXBlock from : pathCount.keySet()) {
-			P.p("   [from] "+from.statements.get(0).getUniqueID());
-			Map<APEXBlock, Integer> count = pathCount.get(from);
-			for (APEXBlock to : count.keySet())
-				P.p("          "+count.get(to)+"  "+to.statements.get(0).getUniqueID());
-		}
-		
-		P.pause();
+		P.p(app.apk.getName()+"\t"+icfg.readers.size()+"\t"+icfg.writers.size()+"\t"+icfg.hasPath());
+//		P.p(app.packageName+"  "+icfg.readers.size()+"  "+icfg.writers.size());
+//		P.p("  -- readers --");
+//		for (APEXBlock b : icfg.readers)
+//			P.p("    "+b.m.signature+" "+b.statements.get(0).index);
+//		P.p("  -- writers --");
+//		for (APEXBlock b : icfg.writers)
+//			P.p("    "+b.m.signature+" "+b.statements.get(0).index);
+//		AllDirectedPaths<APEXBlock, CFGEdge> pathFinder = new AllDirectedPaths<>(icfg.graph);
+//		List<GraphPath<APEXBlock, CFGEdge>> paths = 
+//				pathFinder.getAllPaths(icfg.readers, icfg.writers, true, 100);
+//		Map<APEXBlock, Map<APEXBlock, Integer>> pathCount = new HashMap<APEXBlock, Map<APEXBlock,Integer>>();
+//		for (GraphPath<APEXBlock, CFGEdge> path : paths) {
+//			APEXBlock from = path.getStartVertex();
+//			APEXBlock to = path.getEndVertex();
+//			Map<APEXBlock, Integer> count = pathCount.computeIfAbsent(from, k-> new HashMap<>());
+//			count.put(to, count.getOrDefault(to, 0)+1);
+//		}
+//		P.p("  -- number of paths: "+paths.size());
+//		for (APEXBlock from : pathCount.keySet()) {
+//			P.p("   [from] "+from.statements.get(0).getUniqueID());
+//			Map<APEXBlock, Integer> count = pathCount.get(from);
+//			for (APEXBlock to : count.keySet())
+//				P.p("          "+count.get(to)+"  "+to.statements.get(0).getUniqueID());
+//		}
+//		
+//		P.pause();
 	}
 	
 
 	public static void main(String[] args) {
 		long time = System.currentTimeMillis();
-		List<File> apks = Dirs.getStegoFiles();
+		List<File> apks = Dirs.getAllFiles();
 	
 		File appLabelFile = new File(Dirs.NotesRoot, "StegoApp_Labels.txt");
 		Map<String, String> appLabels = new HashMap<String, String>();
@@ -182,13 +196,12 @@ public class Experiment_path {
 			if (!partStrings[1].equals("N/A"))
 				stegoApps.add(partStrings[0]);
 		}
-		P.p("labeled stego apps: "+stegoApps.size());
+		//P.p("labeled stego apps: "+stegoApps.size());
 		
 		for (File apk : apks) {
 			APEXApp app = new APEXApp(apk);
 			String appLabel = appLabels.get(apk.getName());
-			if (!appLabel.equals("N/A"))
-				analyzeCFG(app, appLabel);
+			analyzeCFG(app, appLabel);
 		}
 		time = (System.currentTimeMillis() - time)/1000;
 		Mailjet.email("icfg done "+time+" seonds.");

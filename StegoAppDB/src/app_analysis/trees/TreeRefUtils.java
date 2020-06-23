@@ -187,11 +187,12 @@ public class TreeRefUtils {
 		for (Expression child : exp.children)
 			trim2(child);
 		
-		if (exp.children.size()==2 && exp.children.get(0).root.equals("literal") && exp.children.get(1).root.equals("literal")) {
+		if (exp.children.size()==2 && 
+				exp.children.get(0).root.equals("literal") && 
+				exp.children.get(1).root.equals("literal")) {
 			exp.root = "literal";
 			exp.children.clear();
 		}
-		
 		return exp;
 	}
 	

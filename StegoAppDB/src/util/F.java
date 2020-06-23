@@ -238,6 +238,34 @@ public class F {
 		}
 	}
 	
+	public static void write(int[] arr, File f, boolean append) {
+		try
+		{
+			PrintWriter out = new PrintWriter(new FileWriter(f, append));
+			for (int i : arr)
+				out.println(i);
+			out.close();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void write(double[] arr, File f, boolean append) {
+		try
+		{
+			PrintWriter out = new PrintWriter(new FileWriter(f, append));
+			for (double i : arr)
+				out.println(i);
+			out.close();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public static void copyToFolder(File from, File toDir) {
 		File to = new File(toDir, from.getName());
 		copy(from, to);

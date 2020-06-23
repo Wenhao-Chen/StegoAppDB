@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.bouncycastle.crypto.modes.CTSBlockCipher;
-
 import app_analysis.common.Dirs;
 import app_analysis.trees.exas.TreeFeature.Options;
 import util.F;
@@ -22,13 +20,17 @@ public class Experiment_cross_val {
 
 	public static void main(String[] args)
 	{
+		
 		//warmupMatchingResult();
 		//cleanupExpressionTrees();
-		//cross_validate(50, 30);
-		read_results();
+		cross_validate(50, 3);
+		cross_validate(60, 3);
+		cross_validate(40, 2);
+		
+		//read_results();
 	}
 	
-	static void read_results() {
+	static void read_results(File reportRootDir) {
 		File appLabelFile = new File(Dirs.NotesRoot, "StegoApp_Labels.txt");
 		Map<String, String> appLabels = new HashMap<String, String>();
 		for (String s : F.readLinesWithoutEmptyLines(appLabelFile)) {
@@ -40,7 +42,6 @@ public class Experiment_cross_val {
 		Map<String, Integer> map = new HashMap<String, Integer>();
 		for (String string : groupNameStrings)
 			map.put(string, map.size());
-		File reportRootDir = new File(Dirs.NotesRoot, "Experiment_cross_val");
 		for (File dir : reportRootDir.listFiles()) {
 			String[] parts = dir.getName().split("_");
 			int num_total = 120;
@@ -67,7 +68,7 @@ public class Experiment_cross_val {
 				//P.pause();
 				if (actualLabel.equals("N/A") && maxScore > 0.5) {
 					false_pos++;
-					falsePosApps.add(app);
+					falsePosApps.add(app+" "+testedLabel);
 				}
 				if (!actualLabel.equals("N/A") && maxScore < 0.5)
 					false_neg++;
@@ -82,7 +83,6 @@ public class Experiment_cross_val {
 					P.p("   "+string);
 				P.pause();
 			}
-			
 		}
 	}
 	// problems: 
@@ -91,6 +91,9 @@ public class Experiment_cross_val {
 	static void cross_validate(int count_ref_apps, int count_runs) {
 		List<File> apks = Dirs.getStegoFiles();
 		String appSet = "stegos";
+		
+		apks = Dirs.getAllFiles();
+		appSet = "both";
 		long t = System.currentTimeMillis();
 		int N = 4;
 		boolean horizontal = true;
@@ -114,7 +117,7 @@ public class Experiment_cross_val {
 		P.pf("total/ref/test apps: %d/%d/%d\n", allApps.size(), count_ref_apps, allApps.size()-count_ref_apps);
 		P.p("labeled stego apps: "+stegoAppList.size());
 		
-		File reportRootDir = new File(Dirs.NotesRoot, "Experiment_cross_val");
+		File reportRootDir = new File("C:\\workspace\\app_analysis\\notes\\Experiment_cross_val\\1195_apps");
 		reportRootDir.mkdirs();
 		for (int i=0; i < count_runs; i++) {
 			P.pf("--- Experiment run: %d/%d\n", i+1, count_runs);
@@ -161,10 +164,11 @@ public class Experiment_cross_val {
 					}
 				}
 				matchedLabels.put(testApp, matchedLabel);
-				String actualLabel = appLabels.get(testApp);
+				String actualLabel = appLabels.getOrDefault(testApp, "N/A");
 				if (!actualLabel.equals(matchedLabel)) {
-					if (actualLabel.equals("N/A"))
+					if (actualLabel.equals("N/A")) {
 						falsePositives++;
+					}
 					else
 						falseNegatives++;
 				}
@@ -229,21 +233,6 @@ public class Experiment_cross_val {
 			int after = newFiles!=null? newFiles.length : 0;
 			total_old += before;
 			total_new += after;
-//			if (expFiles != null && expFiles.length>0) {
-//				before = expFiles.length;
-//				Set<Integer> hashSet = new HashSet<Integer>();
-//				for (File expFile : expFiles)
-//				if (expFile.getName().endsWith(".expression")) {
-//					Expression expression = (Expression) F.readObject(expFile);
-//					TreeRefUtils.trim2(expression);
-//					if (expression!=null && hashSet.add(expression.toStringRaw().hashCode())) {
-//						File newExpFile = new File(newAppDir, expFile.getName());
-//						if (!newExpFile.exists())
-//							F.writeObject(expression, newExpFile);
-//					}
-//				}
-//				after = hashSet.size();
-//			}
 			P.pf("%s before/after = %d/%d\n", oldAppDir.getName(), before, after);
 		}
 		P.pf("total old/new = %d/%d\n", total_old, total_new);

@@ -194,10 +194,10 @@ public class APEXApp {
 			APEXClass c = new APEXClass(f, this);
 			classes.put(c.dexName, c);
 		}
-		else
-			P.e("Parsing smali files but found this: " + f.getAbsolutePath());
-
-		
+		else {
+			//P.e("Parsing smali files but found this: " + f.getAbsolutePath());
+			this.malfunction = true;
+		}
 	}
 	
 	

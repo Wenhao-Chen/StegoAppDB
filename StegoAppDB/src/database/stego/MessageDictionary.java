@@ -23,15 +23,16 @@ public class MessageDictionary {
 	
 	public static void main(String[] args)
 	{
-		//Input Dictionary,shakespeare_richardii.txt
-		//Dictionary Starting Line,1273
-		//Input Message Length (bytes),52065
-		//P.p(getMessage("shakespeare_henryv.txt", 2327, 39498));
-		P.p(getMessage("shakespeare_richardii.txt", 1273, 52065));
+		File dictFolder = new File("E:/message_dictionary");
+		String dictName = "shakespeare_coriolanus.txt";
+		int startingLine = 2998;
+		int numberOfBytes = 3258;
+		
+		File dictFile = new File(dictFolder, dictName);
+		System.out.println(getMessage(dictFile, startingLine, numberOfBytes));
 	}
 	
 	public static String dict_dir = "E:/message_dictionary";
-	
 	public static String getMessage(File dict, int lineIndex, int bytes)
 	{
 		try
@@ -40,7 +41,6 @@ public class MessageDictionary {
 			String line;
 			StringBuilder sb = new StringBuilder();
 			
-			// reach target line index
 			int currLine = 1;
 			while (currLine++<lineIndex)
 				in.readLine();
