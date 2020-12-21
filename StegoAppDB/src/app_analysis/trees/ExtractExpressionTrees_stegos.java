@@ -26,20 +26,21 @@ public class ExtractExpressionTrees_stegos {
 	static ProgressUI ui;
 	static String appToDo = null;
 	static int entryPointMode = 2;
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
 		if (ui == null)
 			ui = ProgressUI.create("Method", 20);
 		ProgressUI ui_overall = ProgressUI.create("App", 20);
 		
-		appToDo = "com.aksel";
+		File tempDir = new File(Dirs.Download, "new_stegos");
+		
+		//appToDo = "com.aksel";
 		entryPointMode = 1; // mode 1 trace back to CG entry points, mode 2 just takes the methods that contain invoke-bitmap APIs
 		File treeRoot = new File(Template.notesDir, "ExpressionTrees");
 		File notesRoot = new File(Template.notesDir, "Notes");
-		List<File> apks = Dirs.getFiles(Dirs.Stego_Github, Dirs.Stego_Others, Dirs.Stego_PlayStore);
+		List<File> apks = //Dirs.getFiles(Dirs.Stego_Github, Dirs.Stego_Others, Dirs.Stego_PlayStore);
+							Dirs.getFiles(tempDir);
 		int total = apks.size(), i = 1;
-		for (File apk : apks)
-		{
+		for (File apk : apks) {
 			ui_overall.newLine(String.format("doing %5d/%d: %s", i++, total, apk.getName()));
 			if (appToDo!=null && !apk.getName().startsWith(appToDo))
 				continue;

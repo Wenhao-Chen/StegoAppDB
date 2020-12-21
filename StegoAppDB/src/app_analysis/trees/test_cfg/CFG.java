@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 
 import app_analysis.common.Dirs;
+import util.P;
 
 public class CFG {
 	
@@ -14,7 +15,8 @@ public class CFG {
 		List<File> apks = Dirs.getStegoFiles();
 		
 		for (File apk : apks) {
-			
+			if (apk.getName().contains("dinaga"))
+				P.pause("found "+apk.getName());
 		}
 		
 	}

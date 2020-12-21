@@ -149,6 +149,7 @@ public class APEXClass {
 	public static final List<String> LibraryClasses = new ArrayList<String>(){
 		private static final long serialVersionUID = 1L;
 	{
+			add("Lsun/");
 			add("Lcom/google/*");
 			add("Lgoogle/*");
 			add("Lorg/apache/*");	
@@ -238,6 +239,8 @@ public class APEXClass {
 			add("Lcom/eabdrazakov/photomontage/ui/*");
 			add("Lcom/flambestudios/picplaypost/*");
 			add("Lcom/gif/gifmaker/*");
+			add("Lcom/tencent/qalsdk/*");
+			add("Ljonelo/*");
 	}};
 	
 	public boolean isLibraryClass()

@@ -45,6 +45,11 @@ public class ProgressUI extends JPanel{
 	private int labelCount;
 	public JFrame frame;
 	
+	public void close() {
+		frame.setVisible(false);
+		frame.dispose();
+	}
+	
 	public ProgressUI(int count)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));

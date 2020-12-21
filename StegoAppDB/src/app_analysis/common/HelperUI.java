@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -71,8 +72,7 @@ public class HelperUI extends JPanel{
 	Map<String, APEXApp> apps = new LinkedHashMap<String, APEXApp>() {
 		private static final long serialVersionUID = 6781776773215826026L;
 		@Override
-		protected boolean removeEldestEntry(Map.Entry<String, APEXApp> e)
-		{
+		protected boolean removeEldestEntry(Map.Entry<String, APEXApp> e) {
 			return size()>10;
 		}
 	};
@@ -287,8 +287,7 @@ public class HelperUI extends JPanel{
 	}
 
 	
-	void setStatus(String s)
-	{
+	void setStatus(String s) {
 		setStatus(s, null);
 	}
 	
@@ -296,8 +295,7 @@ public class HelperUI extends JPanel{
 	{
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
-			public void run()
-			{
+			public void run() {
 				statusLabel.setText(s);
 				if (c != null)
 					statusLabel.setBackground(c);
@@ -429,10 +427,11 @@ public class HelperUI extends JPanel{
 								}
 							}
 							setStatus("Making Sub CG for "+sigs.size()+" methods");
-							File cfgF = Graphviz.makeDotGraph(cg.getDotGraph(sigs), m.c.getJavaName()+"_"+String.join("+", sigs).hashCode(), cgDir, true);
+							File cfgF = Graphviz.makeDotGraph(cg.getDotGraph(sigs), m.c.getJavaName(), cgDir, true);
 							if (cfgF != null)
 							{
 								setStatus("Finished making CG");
+								P.p("call graph PDF location: "+cfgF.getAbsolutePath());
 								P.exec("explorer.exe \""+cfgF.getAbsolutePath()+"\"", false);
 							}
 							else
@@ -533,7 +532,8 @@ public class HelperUI extends JPanel{
 		ClassPopup pop;
 		ClassList(APEXApp app)
 		{
-			super(app.getNonLibraryClassesAsArray());
+			super(app.classes.values().stream().sorted((c1,c2)->c1.dexName.compareTo(c2.dexName))
+					.collect(Collectors.toList()).toArray(new APEXClass[0]));
 			getSelectionModel().addListSelectionListener(this);
 			this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			pop = new ClassPopup(this);

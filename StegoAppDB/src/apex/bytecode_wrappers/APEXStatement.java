@@ -326,4 +326,9 @@ public class APEXStatement {
 			debugInfo.otherStuff.add(line);
 		}
 	}
+	
+	public String getSignatureAsFileName() {
+		String mSig = m.getJavaMethodSig().replace('<', '[').replace('>', ']');
+		return mSig+'_'+index;
+	}
 }

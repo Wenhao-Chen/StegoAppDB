@@ -2,7 +2,9 @@ package app_analysis.trees.exas;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import apex.symbolic.Expression;
 import app_analysis.common.Dirs;
@@ -13,19 +15,25 @@ import util.P;
 
 public class TreeWrapper {
 	
-	public File recordDir, expF;
+	public File recordDir, expF, originalExpF;
 	private Expression exp_full, exp_trimmed;
 	public String appName;
 	private Map<String, Integer> features;
 	private int size = -1;
 	private int hash = 0;
 	private boolean alreadyTrimmed = false;
+	private Boolean matchedWithCounterRef;
 	public TreeWrapper(File expF, String appName) {
 		this(expF, appName, false);
 	}
 	
 	public TreeWrapper(File expF, String appName, boolean alreadyTrimmed) {
+		this(expF, null, appName, alreadyTrimmed);
+	}
+	
+	public TreeWrapper(File expF, File originalExpF, String appName, boolean alreadyTrimmed) {
 		this.expF = expF;
+		this.originalExpF = originalExpF;
 		this.appName = appName;
 		File appDir = new File(Dirs.ExasRoot, appName);
 		recordDir = new File(appDir, expF.getName().substring(0, expF.getName().length()-11));
@@ -37,6 +45,19 @@ public class TreeWrapper {
 		File root1 = new File("C:\\workspace\\app_analysis\\notes\\ExpressionTrees");
 		File dir1 = new File(root1, a);
 		return dir1.exists()?dir1.list().length : 0;
+	}
+	
+	static Set<String> counterRef;
+	public boolean canSkipBecauseOfCounterRef(Options opt) {
+		if (matchedWithCounterRef == null) {
+			if (counterRef == null)
+				counterRef = new HashSet<>(F.readLinesWithoutEmptyLines(new File(Dirs.Desktop,"the194.txt")));
+			
+			matchedWithCounterRef = counterRef.contains(expF.getAbsolutePath())
+					|| counterRef.contains(originalExpF.getAbsolutePath())
+					|| Experiment_FalsePositives.similarToCounterRef(getExpressionTrimmed(), opt);
+		}
+		return matchedWithCounterRef;
 	}
 	
 	public int getSize() {

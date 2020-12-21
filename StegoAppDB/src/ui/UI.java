@@ -82,7 +82,7 @@ public class UI {
 	}
 	
 	
-	public static void createAndShow(JPanel panel, String title)
+	public static JFrame createAndShow(JPanel panel, String title)
 	{
 		try
 		{
@@ -109,5 +109,6 @@ public class UI {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		frame.pack();
+		return frame;
 	}
 }

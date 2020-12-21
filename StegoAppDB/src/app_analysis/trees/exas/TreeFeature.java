@@ -16,12 +16,13 @@ import util.P;
 
 public class TreeFeature {
 	
-	static class Options {
+	public static class Options {
 		boolean horizontal, pqNode, redo;
 		int N;
 		String appSet;
-		Map<String, Integer> nodeDict, featureDict;
-		File nodeDictF, featureDictF;
+		Map<String, Integer> nodeDict;
+		public Map<String, Integer> featureDict;
+		public File nodeDictF, featureDictF;
 		private static final String sperator = " , ";
 		public Options(String s, int n, boolean h, boolean p, boolean r) {
 			appSet = s;

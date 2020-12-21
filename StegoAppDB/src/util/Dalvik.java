@@ -70,4 +70,15 @@ public class Dalvik {
 	{
 		return dexName.startsWith("[");
 	}
+	
+	public static boolean isArithmeticOp(String op) {
+		return op.startsWith("add") || op.startsWith("sub") || op.startsWith("mul") || op.startsWith("div") ||
+				op.startsWith("rem");
+	}
+	
+	public static boolean isLogicalOp(String op) {
+		return op.startsWith("and") || op.startsWith("or") || op.startsWith("shl") || op.startsWith("shr") ||
+				op.startsWith("ushr") || op.startsWith("xor");
+		
+	}
 }

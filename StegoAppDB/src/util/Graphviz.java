@@ -17,6 +17,7 @@ import apex.APEXApp;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.graphs.CallGraph;
 import apex.graphs.ControlFlowGraph;
+import app_analysis.common.Dirs;
 import ui.ProgressUI;
 
 
@@ -29,6 +30,8 @@ public class Graphviz {
 	
 	public static ProgressUI ui = ProgressUI.create("Graphviz", 20);
 	private static ExecutorService executor = Executors.newFixedThreadPool(4);
+	public static boolean skipComplexOnes = true;
+	
 	
 	
 	public static void main(String[] args)
@@ -54,7 +57,7 @@ public class Graphviz {
 	public static String toDotGraphString(int index, String label, String color, String fontColor, String shape, String... keywords)
 	{
 		
-		String result = index + " [ label=\"" + label + "\"";
+		String result = index + " [label=\"" + label + "\"";
 		
 		if (keywords != null)
 		{
@@ -155,14 +158,29 @@ public class Graphviz {
 		if (pdfFilePath.contains(" "))
 			pdfFilePath = "\""+pdfFilePath+"\"";
 		
-		
-		Future<?> f = executor.submit(
-				new DotGraphCallable(dotFile, dotFilePath, pdfFilePath, dotGraphString));
-		try {
-			f.get(10, TimeUnit.SECONDS);
-		}
-		catch (InterruptedException | ExecutionException | TimeoutException e) {
-			return null;
+		if (skipComplexOnes) {
+			Future<?> f = executor.submit(
+					new DotGraphCallable(dotFile, dotFilePath, pdfFilePath, dotGraphString));
+			try {
+				f.get(10, TimeUnit.SECONDS);
+			}
+			catch (InterruptedException | ExecutionException | TimeoutException e) {
+				return null;
+			}
+		} else {
+			try {
+				PrintWriter out = new PrintWriter(new FileWriter(dotFile));
+				out.write(dotGraphString);
+				out.flush();
+				out.close();
+				int id = dotFile.getName().hashCode();
+				//P.pf("dotgraph %d: [*.dot length %d]\n", id, dotFile.length());
+				//dot -Tpdf graph1.dot -o graph1.pdf
+				P.exec(toolPath + " -Tpdf " + dotFilePath + " -o " + pdfFilePath, true, new File(Dirs.Desktop, "graphviz_log.txt"));
+				//P.pf("dotgraph %d done\n", id);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		
 		if (ui != null)
@@ -188,8 +206,9 @@ public class Graphviz {
 				out.write(dotGraphString);
 				out.flush();
 				out.close();
-				if (dotFile.length()>200000) // 200 KB
+				if (dotFile.length()>200000) { // 200 KB
 					return;
+				}
 				int id = dotFile.getName().hashCode();
 				//P.pf("dotgraph %d: [*.dot length %d]\n", id, dotFile.length());
 				//dot -Tpdf graph1.dot -o graph1.pdf

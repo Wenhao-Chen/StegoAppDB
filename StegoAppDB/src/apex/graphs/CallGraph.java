@@ -15,6 +15,8 @@ import apex.APEXApp;
 import apex.bytecode_wrappers.APEXClass;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.bytecode_wrappers.APEXStatement;
+import util.Dalvik;
+import util.DalvikCrawler;
 import util.Graphviz;
 
 public class CallGraph {
@@ -165,9 +167,9 @@ public class CallGraph {
 		for (Vertex v : S)
 		{
 			if (sigs.contains(v.m.signature))
-				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.signature, "red", "red", null, (String[])null)+"\n";
+				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.getJavaMethodSig(), "red", "red", null, (String[])null)+"\n";
 			else
-				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.signature)+"\n";
+				text += "\t"+Graphviz.toDotGraphString(v.index, v.m.getJavaMethodSig())+"\n";
 		}
 		
 		

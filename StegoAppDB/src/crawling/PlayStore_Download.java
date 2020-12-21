@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import app_analysis.common.Dirs;
 import util.F;
 import util.P;
 
@@ -20,6 +21,7 @@ public class PlayStore_Download {
 	
 	public static void main(String[] ssssar)
 	{
+		/*
 		List<String> toDownload = new ArrayList<>();
 		for (String name : F.readLinesWithoutEmptyLines(ImageAppRecord)) {
 			File apk = new File(ImageAppDir, name+".apk");
@@ -38,6 +40,9 @@ public class PlayStore_Download {
 			downloadWith_PlaystoreDownloader(name, apk.getAbsolutePath());
 			//downloadWith_gplaycli(name, apk.getAbsolutePath());
 		}
+		*/
+		File apk = new File(Dirs.Download, "com.stegappasaurus.apk");
+		downloadWith_PlaystoreDownloader("com.stegappasaurus", apk.getAbsolutePath());
 	}
 	
 	static void downloadWith_PlaystoreDownloader(String packageName, String outPath) {

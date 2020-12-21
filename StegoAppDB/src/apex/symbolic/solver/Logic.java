@@ -1,10 +1,13 @@
 package apex.symbolic.solver;
 
+import java.util.Arrays;
+
 import apex.symbolic.Expression;
-import util.P;
 
 public class Logic {
 
+	public static boolean solveConstants = true;
+	
 	public static Expression not(Expression vA)
 	{
 		if (vA.isLiteral() && !vA.isSymbolic)
@@ -23,6 +26,8 @@ public class Logic {
 	
 	public static Expression and(Expression vA, Expression vB)
 	{
+		if (vA == null)
+			return vB.clone();
 		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
@@ -93,7 +98,7 @@ public class Logic {
 	
 	public static Expression xor(Expression vA, Expression vB)
 	{
-		if (vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
+		if (solveConstants && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
 		{
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;

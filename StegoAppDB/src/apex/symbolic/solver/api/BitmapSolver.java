@@ -38,9 +38,9 @@ public class BitmapSolver extends SolverInterface{
 				if (xx<bitmap.concreteBitmap.length && yy<bitmap.concreteBitmap[0].length
 						&& bitmap.concreteBitmap[xx][yy]!=null)
 					vm.recentResult = bitmap.concreteBitmap[xx][yy];
-				return;
 			}
-			vm.createSymbolicMethodReturn("I", invokeSig, params, s);
+			else
+				vm.createSymbolicMethodReturn("I", invokeSig, params, s);
 			vm.recentResult.related_to_pixel = true;
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->getPixels([IIIIIII)V"))
@@ -67,6 +67,10 @@ public class BitmapSolver extends SolverInterface{
 		}
 		else if (invokeSig.equals("Landroid/graphics/Bitmap;->setPixel(III)V"))
 		{
+			if (mc.read(paramRegs[0]).getObjID() == null) {
+				vm.crashed = vm.shouldStop = true;
+				return;
+			}
 			APEXObject bitmap = vm.heap.get(mc.read(paramRegs[0]).getObjID());
 			Expression x = mc.read(paramRegs[1]);
 			Expression y = mc.read(paramRegs[2]);

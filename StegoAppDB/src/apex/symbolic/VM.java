@@ -3,10 +3,12 @@ package apex.symbolic;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
@@ -18,6 +20,8 @@ import apex.bytecode_wrappers.APEXField;
 import apex.bytecode_wrappers.APEXMethod;
 import apex.bytecode_wrappers.APEXStatement;
 import apex.symbolic.APEXObject.BitmapAccess;
+import apex.symbolic.listeners.ExecutionListener;
+import apex.symbolic.listeners.OpListener;
 import apex.symbolic.solver.Arithmetic;
 import apex.symbolic.solver.Condition;
 import apex.symbolic.solver.Logic;
@@ -30,6 +34,8 @@ import util.P;
 
 public class VM extends VM_interface{
 	
+	public static ExecutionListener listener;
+	public static OpListener arithlogicListener;
 	
 	public static int pathCount = 0;
 	
@@ -202,6 +208,9 @@ public class VM extends VM_interface{
 			P.p("  [Method Start] "+s.m.signature);
 		if (printDebug)
 			P.p("  [STMT] " + s.getUniqueID());
+		if (listener != null)
+			listener.preStatementExecution(this, mc, s);
+		
 		if (s.block.statements.get(0)==s)
 		{
 			mc.visitedBlocks.add(s.block);
@@ -900,11 +909,6 @@ public class VM extends VM_interface{
 		case "aput-char"               : 	// vAA, vBB, vCC
 		case "aput-short"              : 	// vAA, vBB, vCC
 		{
-			if (s.index==35) {
-				Expression val = mc.read(args[0]);
-				val.toDotGraph("temp", Dirs.Desktop, false);
-				P.pause("here");
-			}
 			Expression arrObj = mc.read(args[1]);
 			if (!arrObj.isReference())
 			{
@@ -920,10 +924,6 @@ public class VM extends VM_interface{
 			}
 			APEXArray arr = (APEXArray) obj;
 			arr.aput(s, mc.read(args[2]), mc.read(args[0]), this);
-			if (s.smali.equals("aput v6, v2, v4") && (s.index==348||s.index==314)) {
-				P.p(args[0]+" = "+mc.read(args[0]).toString());
-				P.p(args[2]+" = "+mc.read(args[2]).toString());
-			}
 			break;
 		}
 		case "iget"                    : 	// vA, vB, field@CCCC
@@ -1008,12 +1008,11 @@ public class VM extends VM_interface{
 				if (Dalvik.isWideType(exp.type)) // skip a register if this is a wide value
 					i++;
 			}
-
+			
 			APEXMethod m = app.getNonLibraryMethod(args[1]);
 			if (m == null)
 			{
 				String returnType = args[1].substring(args[1].lastIndexOf(")")+1);
-
 				if (APISolver.canSolve(args[1]))
 				{
 					APISolver.solve(args[1], params, s, mc, paramRegs, this);
@@ -1103,19 +1102,36 @@ public class VM extends VM_interface{
 			mc.assign(args[0], Arithmetic.cast(mc.read(args[1]), "I", "S"));
 			break;
 		case "add-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), mc.read(args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "sub-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[1]), mc.read(args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "mul-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), mc.read(args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "div-int"                 : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), mc.read(args[2]), "I");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1125,48 +1141,92 @@ public class VM extends VM_interface{
 		}
 		case "rem-int"                 : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), mc.read(args[2]), "I");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
-			else
-			{
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			} else {
 				shouldStop = true;
 				crashed = true;
 			}
 			break;
 		}
 		case "and-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "or-int"                  : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "xor-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "shl-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.shl(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "shr-int"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.shr(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "ushr-int"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.ushr(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "add-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), mc.read(args[2]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "sub-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[1]), mc.read(args[2]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "mul-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), mc.read(args[2]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "div-long"                : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), mc.read(args[2]), "J");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1176,9 +1236,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-long"                : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), mc.read(args[2]), "J");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1187,37 +1252,79 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "and-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "or-long"                 : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "xor-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "shl-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.shl(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "shr-long"                : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.shr(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "ushr-long"               : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Logic.ushr(mc.read(args[1]), mc.read(args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "add-float"               : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), mc.read(args[2]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "sub-float"               : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[1]), mc.read(args[2]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "mul-float"               : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), mc.read(args[2]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "div-float"               : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), mc.read(args[2]), "F");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
+				
 			else
 			{
 				shouldStop = true;
@@ -1227,9 +1334,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-float"               : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), mc.read(args[2]), "F");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1238,21 +1350,37 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "add-double"              : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), mc.read(args[2]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "sub-double"              : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[1]), mc.read(args[2]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "mul-double"              : 	// vAA, vBB, vCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), mc.read(args[2]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			break;
 		case "div-double"              : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), mc.read(args[2]), "D");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
-			else
-			{
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
+			else {
 				shouldStop = true;
 				crashed = true;
 			}
@@ -1260,9 +1388,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-double"              : 	// vAA, vBB, vCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), mc.read(args[2]), "D");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1], args[2]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1271,19 +1404,36 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "add-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[0]), mc.read(args[1]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "sub-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[0]), mc.read(args[1]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "mul-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[0]), mc.read(args[1]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "div-int/2addr"           : 	//  vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[0]), mc.read(args[1]), "I");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1293,9 +1443,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-int/2addr"           : 	//  vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[0]), mc.read(args[1]), "I");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1304,37 +1459,78 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "and-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "or-int/2addr"            : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "xor-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "shl-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.shl(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "shr-int/2addr"           : 	//  vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.shr(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "ushr-int/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.ushr(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "add-long/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[0]), mc.read(args[1]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "sub-long/2addr"          : 	// vA, vB 
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[0]), mc.read(args[1]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "mul-long/2addr"          : 	// vA, vB 
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[0]), mc.read(args[1]), "J"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "div-long/2addr"          : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[0]), mc.read(args[1]), "J");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1344,9 +1540,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-long/2addr"          : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[0]), mc.read(args[1]), "J");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1355,37 +1556,78 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "and-long/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "or-long/2addr"           : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "xor-long/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "shl-long/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.shl(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "shr-long/2addr"          : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.shr(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "ushr-long/2addr"         : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Logic.ushr(mc.read(args[0]), mc.read(args[1])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "add-float/2addr"         : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[0]), mc.read(args[1]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "sub-float/2addr"         : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[0]), mc.read(args[1]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "mul-float/2addr"         : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[0]), mc.read(args[1]), "F"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "div-float/2addr"         : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[0]), mc.read(args[1]), "F");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1395,9 +1637,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-float/2addr"         : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[0]), mc.read(args[1]), "F");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1406,19 +1653,36 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "add-double/2addr"        : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[0]), mc.read(args[1]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "sub-double/2addr"        : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(mc.read(args[0]), mc.read(args[1]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "mul-double/2addr"        : 	// vA, vB
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[0]), mc.read(args[1]), "D"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			break;
 		case "div-double/2addr"        : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[0]), mc.read(args[1]), "D");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1428,9 +1692,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-double/2addr"        : 	// vA, vB
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[0]), mc.read(args[1]), "D");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[0], args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1439,19 +1708,36 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "add-int/lit16"           : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "rsub-int"                : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(Expression.newLiteral("I", args[2]), mc.read(args[1]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "mul-int/lit16"           : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "div-int/lit16"           : 	// vA, vB, #+CCCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1461,9 +1747,14 @@ public class VM extends VM_interface{
 		}
 		case "rem-int/lit16"           : 	// vA, vB, #+CCCC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
+			}
 			else
 			{
 				shouldStop = true;
@@ -1472,28 +1763,58 @@ public class VM extends VM_interface{
 			break;
 		}
 		case "and-int/lit16"           : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "or-int/lit16"            : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "xor-int/lit16"           : 	// vA, vB, #+CCCC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
+			//xorListener(mc.read(args[0]));
 			break;
 		case "add-int/lit8"            : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.add(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "rsub-int/lit8"           : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.sub(Expression.newLiteral("I", args[2]), mc.read(args[1]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "mul-int/lit8"            : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Arithmetic.mul(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I"));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "div-int/lit8"            : 	// vAA, vBB, #+CC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			Expression divResult = Arithmetic.div(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I");
-			if (divResult != null)
+			if (divResult != null) {
 				mc.assign(args[0], divResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
+			}
 			else {
 				shouldStop = true;
 				crashed = true;
@@ -1502,34 +1823,63 @@ public class VM extends VM_interface{
 		}
 		case "rem-int/lit8"            : 	// vAA, vBB, #+CC
 		{
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			Expression remResult = Arithmetic.rem(mc.read(args[1]), Expression.newLiteral("I", args[2]), "I");
-			if (remResult != null)
+			if (remResult != null) {
 				mc.assign(args[0], remResult);
+				if (arithlogicListener != null)
+					arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
+			}
 			else
 				shouldStop =  crashed = true;
 			break;
 		}
 		case "and-int/lit8"            : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.and(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "or-int/lit8"             : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.or(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "xor-int/lit8"            : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.xor(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "shl-int/lit8"            : 	// vAA, vBB, #+CC
 			if (mc.read(args[1])==null) {
 				this.crashed = this.shouldStop = true;
 				break;
 			}
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.shl(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "shr-int/lit8"            : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.shr(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 		case "ushr-int/lit8"           : 	// vAA, vBB, #+CC
+			if (arithlogicListener != null)
+				arithlogicListener.beforeOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			mc.assign(args[0], Logic.ushr(mc.read(args[1]), Expression.newLiteral("I", args[2])));
+			if (arithlogicListener != null)
+				arithlogicListener.afterOp(this, mc, s, Arrays.asList(args[1]), args[0]);
 			break;
 			
 		case "invoke-polymorphic"      : 	// {vC, vD, vE, vF, vG}, meth@BBBB, proto@HHHH
@@ -1542,6 +1892,9 @@ public class VM extends VM_interface{
 			P.pause();
 			break;
 		}
+		
+		if (listener != null)
+			listener.postStatementExecution(this, mc, s);
 		
 //		//NOTE: experimental
 //		if (s.smali.startsWith("and-int/2addr v0, v2") && s.index==14) {
@@ -1726,6 +2079,19 @@ public class VM extends VM_interface{
 	public void sput(Expression exp, String fieldSig)
 	{
 		putField(exp, "$obj_0", fieldSig);
+	}
+	
+	
+	static int xorIndex = 1;
+	private static void xorListener(Expression exp) {
+		File dir = new File(Dirs.Desktop, "jpeg");
+		File pdf = exp.toDotGraph("xor"+xorIndex, dir, false);
+		//P.exec("explorer.exe "+ pdf.getAbsolutePath(), false);
+		//P.pause("xor-int pause: "+xorIndex);
+		if (exp.toString().contains("&")) {
+			P.pause("and: "+xorIndex);
+		}
+		xorIndex++;
 	}
 	
 	public Expression getField(String objName, String fieldSig, APEXStatement s)

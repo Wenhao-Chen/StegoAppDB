@@ -15,7 +15,7 @@ import util.P;
 
 public class ROC {
 
-	static final File pyF = new File(Dirs.Desktop, "roc_pr.py");
+	static final File pyF = new File("C:\\workspace\\app_analysis\\roc_pr.py");
 	
 	public static void draw(
 			Options opt, 

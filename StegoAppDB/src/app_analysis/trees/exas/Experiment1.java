@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import apex.symbolic.Expression;
 import app_analysis.common.Dirs;
@@ -33,7 +34,6 @@ public class Experiment1 {
 	
 	static Set<String> refTreesToSkip = new HashSet<String>(Arrays.asList(
 			"and_mask_1",
-			"one_step_2",
 			"one_step_11"
 			));
 	
@@ -51,13 +51,14 @@ public class Experiment1 {
 	public static void main(String[] args) {
 		apks = Dirs.getStegoFiles(); appSet = "stegos";
 		apks = Dirs.getAllFiles(); appSet = "both";
-		apks = Dirs.get150Apps2(); appSet = "150apps";
+		//apks = Dirs.get150Apps2(); appSet = "150apps";
 		
 		skipSomeRefTrees = false;
 		int fp1 = go();
-		skipSomeRefTrees = true; int fp2 = go(); P.p("fp1 vs fp2: "+fp1+" "+fp2);
+		//skipSomeRefTrees = true; int fp2 = go(); P.p("fp1 vs fp2: "+fp1+" "+fp2);
 		Mailjet.email("check result");
 	}
+	static Set<String> falsePosTrees = new HashSet<String>();
 	
 	static List<File> apks;
 	static String appSet;
@@ -77,6 +78,7 @@ public class Experiment1 {
 //		P.pause("ready");
 		
 		Map<String, List<Expression>> allRefTrees = Reference.getReferenceTrees();
+		
 		int total_ref = 0;
 		for (List<Expression> list : allRefTrees.values())
 			total_ref += list.size();
@@ -85,6 +87,7 @@ public class Experiment1 {
 		Map<String, List<Map<String, Integer>>> allRefFeatures = new HashMap<>();
 		Map<String, List<Integer>> allRefHashes = new HashMap<>();
 		List<String> FPApps = new ArrayList<String>();
+		
 		
 		// 1. generate tree features and get sparse feature space
 		P.p("gathering sparse feature space...");
@@ -109,6 +112,7 @@ public class Experiment1 {
 		
 		P.p("feature count: "+opt.featureDict.size());
 		
+		
 		Map<String, List<String>> badies = new HashMap<>();
 		Map<String, Set<String>> badieApps = new HashMap<String, Set<String>>();
 		// 2. calculate similarities between app trees and reference trees
@@ -117,6 +121,9 @@ public class Experiment1 {
 		Map<String, Double> maxAppScores = new HashMap<>();
 		File oneTreeDir = new File(Dirs.Desktop, "One Tree");
 		oneTreeDir.mkdirs();
+		TreeMap<Double, Integer> fpCountAll = new TreeMap<Double, Integer>();
+		double thresh = 0.9;
+		int fpTreeCount = 0;
 		for (File apk : apks) {
 			boolean isStego = App.getStegoAppNames().contains(apk.getName());
 			double maxSim1_overall = -1.0;
@@ -131,6 +138,10 @@ public class Experiment1 {
 				List<Integer> groupRefHashes = allRefHashes.get(refGroup);
 				TreeWrapper maxTreeInGroup = null;
 				for (TreeWrapper tree : allAppTrees.get(apk.getName())) {
+					if (tree.canSkipBecauseOfCounterRef(opt)) {
+						fpTreeCount++;
+						continue;
+					}
 					for (int i=0; i<groupRefFeatures.size(); i++) {
 						String refID = refGroup+"_"+i;
 						if (skipSomeRefTrees && refTreesToSkip.contains(refID)) {
@@ -140,7 +151,12 @@ public class Experiment1 {
 						if (sim1 > maxSim1_group) {
 							maxSim1_group = sim1;
 							maxTreeInGroup = tree;
-							if (!isStego && sim1 > 0.9) {
+							if (!isStego && sim1 > thresh) {
+								if (tree.originalExpF!=null && tree.originalExpF.exists()) {
+									fpTreeCount++;
+									falsePosTrees.add(tree.originalExpF.getAbsolutePath());
+								}
+								
 								Expression bad = allRefTrees.get(refGroup).get(i);
 								if (!badies.containsKey(refID)) {
 									bad.toDotGraph("bad_"+refID, Dirs.Desktop, false);
@@ -162,7 +178,7 @@ public class Experiment1 {
 			maxAppScores.put(apk.getName(), maxSim1_overall);
 			if (!onlyProcessShortList || shortList.contains(apk.getName()))
 				P.p(matchedGroup+" "+maxSim1_overall+" "+apk.getName());
-			if (maxSim1_overall > 0.9 && !isStego) {
+			if (maxSim1_overall > thresh && !isStego) {
 				FPApps.add(apk.getName());
 				File appOneTreeDir = new File(oneTreeDir, apk.getName());
 				appOneTreeDir.mkdirs();
@@ -172,7 +188,10 @@ public class Experiment1 {
 				exp.toDotGraph(expF.getName(), appOneTreeDir, false);
 			}
 		}
-		
+		File namesFile = new File(Dirs.Desktop, "fpTrees.txt");
+		F.write(falsePosTrees, namesFile, false);
+		Mailjet.email("check result");
+		//P.pause();
 		opt.saveDict();
 		
 		P.pf("%s", "App Name");
@@ -187,12 +206,13 @@ public class Experiment1 {
 			Map<String, Double> appScores = allAppScores.get(apk.getName());
 			for (String group : allRefTrees.keySet()) {
 				double score = appScores.getOrDefault(group, -1.0);
-				P.pf("\t%f", score);
+				P.pf("\t%f", (score+1)/2);
 			}
 			P.p("");
 		}
 		
 		P.p("-- false positives using 0.9 thresh -- "+FPApps.size());
+		P.p("-- skipped trees "+fpTreeCount);
 		//for (String app : FPApps)
 		//	P.p(app);
 		
@@ -242,9 +262,13 @@ public class Experiment1 {
 	
 	//NOTE: this one use the formula 1 - 2*(|x1-x2|)/(|x1|+|x2|)
 	// result is in range of -1 to 1
-	static double sim_norm1(Map<String, Integer> f1, Map<String, Integer> f2, Map<String, Integer> featureDict) {
+	public static double sim_norm1(Map<String, Integer> f1, Map<String, Integer> f2, Map<String, Integer> featureDict) {
 		
 		for (Map.Entry<String, Integer> entry : f1.entrySet()) {
+			if (!featureDict.containsKey(entry.getKey()))
+				featureDict.put(entry.getKey(), featureDict.size());
+		}
+		for (Map.Entry<String, Integer> entry : f2.entrySet()) {
 			if (!featureDict.containsKey(entry.getKey()))
 				featureDict.put(entry.getKey(), featureDict.size());
 		}
@@ -268,9 +292,9 @@ public class Experiment1 {
 		int[] v1 = new int[featureDict.size()];
 		int[] v2 = new int[featureDict.size()];
 		for (Map.Entry<String, Integer> entry : f1.entrySet()) {
-			//if (!featureDict.containsKey(entry.getKey()))
-			//	P.p("unknown feature: " +entry.getKey());
-			v1[featureDict.get(entry.getKey())] = entry.getValue();
+			String f = entry.getKey();
+			featureDict.putIfAbsent(f, featureDict.size());
+			v1[featureDict.get(f)] = entry.getValue();
 		}
 		for (Map.Entry<String, Integer> entry : f2.entrySet())
 			v2[featureDict.get(entry.getKey())] = entry.getValue();
@@ -300,15 +324,24 @@ public class Experiment1 {
 	
 	
 	static Map<String, List<TreeWrapper>> getTrees(List<File> apks) {
+		Set<String>	counterRef = new HashSet<>(F.readLinesWithoutEmptyLines(new File(Dirs.Desktop,"the194.txt")));
 		Map<String, List<TreeWrapper>> map = new HashMap<>();
 		File medoidRoot = new File(Dirs.NotesRoot, "Trimmed_ExpressionTrees");
+		File originalRoot = new File(Dirs.NotesRoot, "Medoid_ExpressionTrees");
 		for (File apk : apks) {
 			String app = apk.getName();
 			List<TreeWrapper> trees = new ArrayList<>();
 			File appDir = new File(medoidRoot, app);
+			File oldAppDir = new File(originalRoot, app);
 			for (File expF : appDir.listFiles())
-			if (expF.getName().endsWith(".expression"))
-				trees.add(new TreeWrapper(expF, app, true));
+			if (expF.getName().endsWith(".expression")) {
+				File originalExpF = new File(oldAppDir, expF.getName());
+				if (counterRef.contains(originalExpF.getAbsolutePath())) {
+					continue;
+				}
+				trees.add(new TreeWrapper(expF, originalExpF, app, true));
+			}
+				
 			map.put(app, trees);
 		}
 		return map;

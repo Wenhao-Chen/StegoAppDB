@@ -23,7 +23,6 @@ public class TreeRefUtils {
 	
 	static final void init() {
 		
-		
 		trees = new LinkedHashMap<>();
 		// one step embedding
 		trees.put("one_step_1", deserialize("+", "Y", "literal", "", "", "0x1"));
@@ -187,7 +186,7 @@ public class TreeRefUtils {
 		for (Expression child : exp.children)
 			trim2(child);
 		
-		if (exp.children.size()==2 && 
+		if (!exp.root.equals("^") && exp.children.size()==2 && 
 				exp.children.get(0).root.equals("literal") && 
 				exp.children.get(1).root.equals("literal")) {
 			exp.root = "literal";

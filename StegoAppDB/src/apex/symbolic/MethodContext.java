@@ -139,7 +139,9 @@ public class MethodContext {
 	public Expression read(String vA)
 	{
 		Register reg = regs.get(vA);
-		return reg==null?null:reg.value;
+		if (reg!=null && reg.value==null)
+			reg.value = Expression.newLiteral("I", "0");
+		return reg==null?Expression.newLiteral("I", "0"):reg.value;
 	}
 	
 	public void assign(String vA, Expression value)
@@ -156,9 +158,10 @@ public class MethodContext {
 		Register r = regs.get(vA);
 		if (r == null)
 		{
-			print();
+			//print();
+			return;
 		}
-		r.value = value.clone();
+		r.value = value==null?null:value.clone();
 		r.isWideLow = false;
 		r.isWideHigh = false;
 		if (wide)

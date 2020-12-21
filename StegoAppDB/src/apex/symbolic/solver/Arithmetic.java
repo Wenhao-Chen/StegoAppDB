@@ -1,10 +1,6 @@
 package apex.symbolic.solver;
 
-import java.util.Random;
-
 import apex.symbolic.Expression;
-import app_analysis.common.Dirs;
-import util.P;
 
 public class Arithmetic {
 
@@ -14,17 +10,14 @@ public class Arithmetic {
 	// add v0, v1 in lazy mode returns: add 0x1 0x1, while not-lazy mode returns: 0x2
 	public static boolean lazy = false;
 	
-	public static Expression add(Expression vA, Expression vB, String type)
-	{
+	public static Expression add(Expression vA, Expression vB, String type) {
 		vA.type = type;
 		vB.type = type;
 		
-		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic)
-		{
+		if (!lazy && vA.isLiteral() && !vA.isSymbolic && vB.isLiteral() && !vB.isSymbolic) {
 			String val1 = vA.children.get(0).root;
 			String val2 = vB.children.get(0).root;
-			switch (type)
-			{
+			switch (type) {
 			case "I":
 				return Expression.newLiteral(type, (parseInt(val1)+parseInt(val2))+"");
 			case "F":
@@ -42,8 +35,7 @@ public class Arithmetic {
 		return exp;
 	}
 	
-	public static Expression sub(Expression vA, Expression vB, String type)
-	{
+	public static Expression sub(Expression vA, Expression vB, String type) {
 		vA.type = type;
 		vB.type = type;
 		

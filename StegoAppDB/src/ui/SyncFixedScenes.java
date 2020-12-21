@@ -146,7 +146,7 @@ public class SyncFixedScenes extends JPanel implements ActionListener{
 				{
 					int sceneIndex = i+startSceneIndex;
 					sceneIndexLabels[i].setText("Scene "+sceneIndex);
-					for (int j = 0; j < NumDevices; j++)
+					for (int j = 0; j < NumDevices && j < devices.size(); j++)
 					{
 						Device d = devices.get(j);
 						ImageCell cell = imageCells[i][j];
@@ -162,12 +162,10 @@ public class SyncFixedScenes extends JPanel implements ActionListener{
 
 	}
 	
-	private void initDevices()
-	{
+	private void initDevices() {
 		devices = new ArrayList<>();
-		File root = new File("G:/TEMP_18_Phones_Fixed_Scenes_Data");
-		for (File dir : root.listFiles())
-		{
+		File root = new File("H:\\StegoAppDB_20Devices_FixedScenes_Dec2020");
+		for (File dir : root.listFiles()) {
 			if (dir.getName().equals("5dngs"))
 				continue;
 			Device device = new Device(dir);
@@ -185,18 +183,20 @@ public class SyncFixedScenes extends JPanel implements ActionListener{
 			name = root.getName();
 			oriDir = new File(root, "originals");
 			dngDir = new File(oriDir, "DNG");
+			oriDir = dngDir = root;
 			tifDir = new File(dngDir, "TIFF");
 			natDir = new File(root, "Native");
 			badDir = new File(root, "bad");		badDir.mkdirs();
-			P.pf("%s jpg = %d, dng = %d, tif = %d, nat = %d, bad = %d",
+			/*P.pf("%s jpg = %d, dng = %d, tif = %d, nat = %d, bad = %d",
 					name, oriDir.list().length, dngDir.list().length, tifDir.list().length, 
 					natDir.list().length, badDir.list().length);
-			
+			*/
 			Map<String, Scene> ss = new TreeMap<>();
 			collectScenes(ss, this, oriDir, dngDir, tifDir);
 			scenes = new ArrayList<>(ss.values());
 			for (Scene s : scenes) s.validate();
 			nativeImages = new ArrayList<>();
+			if (natDir.exists())
 			for (File nat : natDir.listFiles())
 				nativeImages.add(nat);
 		}
@@ -222,6 +222,7 @@ public class SyncFixedScenes extends JPanel implements ActionListener{
 				ss.get(sceneName).dngs.add(dng);
 			}
 		}
+		if (tifDir.exists())
 		for (File tif : tifDir.listFiles())
 		{
 			if (tif.getName().endsWith(".tif"))
@@ -248,8 +249,10 @@ public class SyncFixedScenes extends JPanel implements ActionListener{
 		
 		BufferedImage getAutoJPGThumb()
 		{
+			File thumbDir = new File("H:/temp_thumbs");
+			thumbDir.mkdirs();
 			File jpg = jpgs.get(0);
-			File thumb = new File("E:/temp_thumbs/"+d.name+"_"+jpg.getName());
+			File thumb = new File(thumbDir, d.name+"_"+jpg.getName());
 			if (!thumb.exists())
 				return Images.scale(jpg, thumb);
 			return Images.loadImage(thumb);

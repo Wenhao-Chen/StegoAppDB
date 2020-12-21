@@ -119,6 +119,13 @@ public class APEXMethod {
 		return result;
 	}
 	
+	public String getJavaMethodSig() {
+		String className = c.getJavaName();
+		String methodName = getName();
+		String[] params = getParamTypeJavaNames().toArray(new String[0]);
+		return className+"."+methodName+"("+String.join(", ", params)+")";
+	}
+	
 	public ArrayList<String> getParamTypeDexNames()
 	{
 		ArrayList<String> result = new ArrayList<String>();

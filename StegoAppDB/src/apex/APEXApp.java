@@ -38,6 +38,10 @@ public class APEXApp {
 	public static boolean parseXML = true;
 	public boolean malfunction = false;
 	
+	public APEXApp(String apkPath) {
+		this(new File(apkPath));
+	}
+	
 	public APEXApp(File f)
 	{
 		this(f, null);

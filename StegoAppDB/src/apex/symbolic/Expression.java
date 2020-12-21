@@ -40,6 +40,8 @@ public class Expression implements Serializable{
 	public int bitIndexFromRight = -1;
 	public Expression pixelExp = null;
 	
+	public File expF;
+	
 	public String note;
 	
 	private Expression() {};
@@ -61,6 +63,94 @@ public class Expression implements Serializable{
 		for (Expression childExpression : children)
 			res += childExpression.nodeCount();
 		return res;
+	}
+	
+	public File toDotGraph2(String name, File dir, boolean trimmed)
+	{
+		File dotFile = new File(dir, name+(trimmed?"_trimmed":"_full")+".dot");
+		File pdfFile = new File(dir, name+(trimmed?"_trimmed":"_full")+".pdf");
+		if (dotFile.exists() && pdfFile.exists())
+			return pdfFile;
+		
+		Queue<Expression> queue = new LinkedList<>();
+		queue.offer(this);
+		
+		Map<Expression, Integer> indices = new HashMap<>();
+		Map<Integer, List<Integer>> edges = new HashMap<>();
+		
+		int index = 0;
+		while (!queue.isEmpty())
+		{
+			Expression curr = queue.poll();
+			int i = index;
+			if (!indices.containsKey(curr))
+				indices.put(curr, index++);
+			else
+				i = indices.get(curr);
+			edges.putIfAbsent(i, new ArrayList<>());
+			if (trimmed)
+			{
+				// skip the child of reference
+				if (curr.root.equals("reference"))
+					continue;
+				// skip the child of literal if the child doesn't start with 0x
+				if (curr.root.equals("literal")) {
+					if (curr.children.isEmpty() || !curr.children.get(0).root.startsWith("0x"))
+						continue;
+				}
+				if (curr.root.equals("return") && curr.children.get(0).root.equals("Landroid/graphics/Bitmap;->getPixel(II)I")) {
+					curr.children.set(1, new Expression("reference"));
+					curr.children.set(2, new Expression("literal"));
+					curr.children.set(3, new Expression("literal"));
+				}
+			}
+			for (Expression child : curr.children)
+			{
+				queue.add(child);
+				if (!indices.containsKey(child))
+					indices.put(child, index++);
+				edges.get(i).add(index-1);
+			}
+		}
+		Set<Integer> indicesToHighlight = new HashSet<>();
+		String text = "digraph G{\n";
+		text += "\tcompound=true;\n";
+		text += "\tordering=out;\n";
+		text += "\tnode [shape=box];\n";
+		//text += "\tedge [dir=none];\n";
+		for (Expression exp : indices.keySet())
+		{
+			if (exp.shouldHighlight) {
+				String c = (highlightColor==null?"red":highlightColor);
+				text += "\t"+ Graphviz.toDotGraphString(indices.get(exp), exp.root, c, c) +"\n";
+				indicesToHighlight.add(indices.get(exp));
+			}
+			else
+				text += "\t"+Graphviz.toDotGraphString(indices.get(exp), exp.root)+"\n";
+		}
+		for (int src : edges.keySet())
+		{
+			boolean hl = indicesToHighlight.contains(src);
+			List<Integer> dsts = edges.get(src);
+			for (int i = 0; i < dsts.size(); i++)
+			{
+				if (hl) {
+					if (dsts.size()>2)
+						text += "\t"+src+" -> "+dsts.get(i)+"[label=\""+(i+1)+"\" color=red];\n";
+					else
+						text += "\t"+src+" -> "+dsts.get(i)+"[color=red];\n";
+				}
+				else {
+					if (dsts.size()>2)
+						text += "\t"+src+" -> "+dsts.get(i)+"[label=\""+(i+1)+"\"];\n";
+					else
+						text += "\t"+src+" -> "+dsts.get(i)+";\n";
+				}
+			}
+		}
+		text += "}";
+		
+		return Graphviz.makeDotGraph(text, name+(trimmed?"_timmed":"_full"), dir, true);
 	}
 	
 	public File toDotGraph(String name, File dir, boolean trimmed)
