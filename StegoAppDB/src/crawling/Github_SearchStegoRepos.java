@@ -99,17 +99,4 @@ public class Github_SearchStegoRepos {
 	
 	
 	
-	static String getPW()
-	{
-		char[] arr = new char[code.length];
-		for (int i=0; i<arr.length; i++)
-		{
-			arr[i] = (char)code[i];
-		}
-		return new String(arr);
-	}
-	
-	
-	static String email = "xjtujack@gmail.com";
-	static int[] code = {106, 97, 99, 107, 94, 56, 56, 48, 53, 48, 56 };
 }
