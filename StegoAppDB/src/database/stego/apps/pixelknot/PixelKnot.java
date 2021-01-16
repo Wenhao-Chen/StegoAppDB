@@ -28,10 +28,17 @@ public class PixelKnot {
         return validate(stegoF, recordMessage, password, aesIV);
     }
     
-    //TODO: add signature validation function: either return the whole extracted message
-    // or return boolean: extractedMessage.startsWith(SENTINEL)
+    // check if given jpg is a PixelKnot stego
+    // password is needed for f5 seed
+    // if we only care about detection, not extraction, then we just need to guess
+    // the f5 seed, which is 1/3 of the full password
     public static boolean hasPixelKnotSignature(File stego, String fullPassword) {
-    	return false;
+    	
+    	String f5seed = fullPassword.substring(fullPassword.length()/3*2);
+    	F5CoreExtract f5e = new F5CoreExtract(stego.getAbsolutePath());
+        String extracted = f5e.extract(f5seed);
+    	
+    	return extracted.startsWith(PASSWORD_SENTINEL);
     }
     
     // for validating older versions (any stegos generated before Jan 15 2021) of our PixelKnot stegos
