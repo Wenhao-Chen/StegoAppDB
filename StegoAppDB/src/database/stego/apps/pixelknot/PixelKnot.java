@@ -93,8 +93,7 @@ public class PixelKnot {
         return extractedPlaintext.equals(recordedMessage);
     }
     
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
     	File dir = new File("C:\\workspace\\temp\\PixelKnot");
     	for (File stegoF : dir.listFiles())
     	{
@@ -105,6 +104,10 @@ public class PixelKnot {
     		
     		P.p(stegoF.getAbsolutePath());
     		P.p("validated: "+validate(stegoF, statsF));
+    		
+    		Map<String, String> info = StegoStats.load(statsF);
+    		String password = info.get("Password");
+    		P.p("has signature: "+hasPixelKnotSignature(stegoF, password));
     	}
     }
     
