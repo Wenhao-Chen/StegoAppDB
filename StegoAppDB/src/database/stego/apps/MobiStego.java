@@ -30,8 +30,7 @@ public class MobiStego {
 		return validate(stego, recordMessage);
 	}
 	
-	public static boolean validate(File stego, String recordedMessage)
-	{
+	public static boolean validate(File stego, String recordedMessage) {
 		String extractedMessage = extract(Images.loadImage(stego));
 		return recordedMessage.equals(extractedMessage);
 	}

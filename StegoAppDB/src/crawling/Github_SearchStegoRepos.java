@@ -26,8 +26,8 @@ public class Github_SearchStegoRepos {
 		WebDriver driver = new ChromeDriver();
 		
 		driver.get("https://github.com/login");
-		driver.findElement(By.name("login")).sendKeys(email);
-		driver.findElement(By.name("password")).sendKeys(getPW());
+		driver.findElement(By.name("login")).sendKeys("email");
+		driver.findElement(By.name("password")).sendKeys("pw");
 		driver.findElement(By.name("commit")).click();
 		driver.findElement(By.cssSelector("input[type=\"text\"]")).sendKeys("steg\n");
 		List<WebElement> eles = driver.findElements(By.cssSelector("a[class=\"filter-item\"]"));

@@ -23,27 +23,18 @@ public class Validate{
 
 	public static void main(String[] args)
 	{
-		/*		File root = new File("E:\\stegodb_March2019");
-				String[] apps = {
-						"Pictograph", "MobiStego", "PocketStego", "SteganographyM"
-				};
-				for (File d : root.listFiles()) {
-					if (d.getName().startsWith("_"))
-						continue;
-					File stegoDir = new File(d, "stegos");
-					for (String app : apps) {
-						File appDir = new File(stegoDir, app);
-						F.delete(appDir);
-					}
-				}
-				P.pause("done");*/
-		
-		MainDB db = new MainDB("E:/stegodb_March2019");
+		MainDB db = new MainDB(
+				//"E:\\GoogleDrive\\CSAFE My Drive - don't use\\StegoAppDB_Images_Backup\\stegodb_March2019"
+				"H:\\StegoAppDB_20Devices_FixedScenes_Dec2020"
+				);
 		Images.ui = ProgressUI.create("Image Operations", 20);
 		Pictograph.ui = ProgressUI.create("Pictograph", 20);
 		Passlok.ui = ProgressUI.create("Passlok", 20);
 		DBDevice.ui = ProgressUI.create("Device Operations", 20);
 		DBStego.ui = ProgressUI.create("Stego Validation", 20);
+		
+		// We once used grayscale PNGs as cover, later switched to color PNGs
+		DBImage.useColorInput = true;
 		
 		File skipF = new File("E:/stegodb_March2019/_records/SkipValidation.txt");
 		Set<String> toSkip = new HashSet<>(F.readLinesWithoutEmptyLines(skipF));
@@ -57,67 +48,64 @@ public class Validate{
 		}
 		for (DBDevice d : db.devices)
 		{
-			//if (!d.name.equals("Pixel1-2"))
-			//	continue;
 			//// stage 1 - automatic validation: scene count, readability, manual settings
 			P.p("-- "+d.name +" "+d.getScenes().size()+" scenes");
-			if (!toSkip.contains(d.name))
+			if (toSkip.contains(d.name)) {
+				ready.add(d);
+				continue;
+			}
+		
+			int sceneCount = d.getScenes().size();
+			if (sceneCount<100) {
+				P.p("    not enough scenes - has "+sceneCount+" currently.");
+				continue;
+			}
+			else {
+				P.p("    scene count: "+sceneCount);
+			}
+			boolean readyForSceneContentVal = d.validateOriginals();
+			
+			if (!readyForSceneContentVal)
 			{
-				int sceneCount = d.getScenes().size();
-				if (sceneCount<100)
-				{
-					P.p("    not enough scenes - has "+sceneCount+" currently.");
-					continue;
-				}
-				else
-				{
-					P.p("    scene count: "+sceneCount);
-				}
-				boolean readyForSceneContentVal = d.validateOriginals();
-				
-				if (!readyForSceneContentVal)
-				{
-					P.p("    there are some bad original images. Check the records file for details.");
-					continue;
-				}
-				
-				//// stage 2 - manual validation: scene content
-				if (!db.devicesWithValidatedSceneContent.contains(d.name))
-				{
-					P.p("    need to manually validate scene content and update \""+db.recordsDir.getAbsolutePath()+"\\SceneContentValidated.txt\"");
-					continue;
-				}
-				
-				//// stage 3 - generate center-cropped PNGs
-				int matlabJobCount = d.makePNGs(matlabJobs);
-				if (matlabJobCount > 0)
-				{
-					P.p("    need to run matlab rgb2gray script. Jobs recorded in: " + jobPath);
-					matlabJobs.flush();
-					continue;
-				}
-				
-				//// stage 4 - generate stegos
-				////	for iPhones: stegos are automatically generated here
-				if (d.isIPhone())
-				{
-					P.p("    checking pictograph stegos...");
-					d.makePictographStegos(false);
-				}
-				else
-				{
-					P.p("    checking passlok stegos... ");
-					d.makePasslokStegos(false);
-				}
-				
-				System.out.print("    validating... ");
-				boolean validated = d.validateAll();
-				System.out.print(validated?"passed. Ready for database.\n":"failed. Check the records file for details.\n");
-				if (validated)
-					ready.add(d);
+				P.p("    there are some bad original images. Check the records file for details.");
+				continue;
+			}
+			
+			//// stage 2 - manual validation: scene content
+			if (!db.devicesWithValidatedSceneContent.contains(d.name))
+			{
+				P.p("    need to manually validate scene content and update \""+db.recordsDir.getAbsolutePath()+"\\SceneContentValidated.txt\"");
+				continue;
+			}
+			
+			//// stage 3 - generate center-cropped PNGs
+			int matlabJobCount = d.makePNGs(matlabJobs);
+			if (matlabJobCount > 0)
+			{
+				P.p("    need to run matlab rgb2gray script. Jobs recorded in: " + jobPath);
+				matlabJobs.flush();
+				continue;
+			}
+			
+			//// stage 4 - generate stegos
+			////	for iPhones: stegos are automatically generated here
+			if (d.isIPhone())
+			{
+				P.p("    checking pictograph stegos...");
+				d.makePictographStegos(false);
 			}
 			else
+			{
+				P.p("    checking passlok stegos... ");
+				d.makePasslokStegos(false);
+			}
+			
+			System.out.print("    validating... ");
+			boolean validated = d.validateAll();
+			System.out.print(validated?"passed. Ready for database.\n":"failed. Check the records file for details.\n");
+			if (validated)
 				ready.add(d);
+		
 		}
 		if (matlabJobs != null)
 			matlabJobs.close();

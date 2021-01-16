@@ -41,7 +41,7 @@ public class FixedScenesMain extends JPanel implements ActionListener{
 	public static final File rootDir = new File("H:\\StegoAppDB_20Devices_FixedScenes_Dec2020");
 	private static final String[] DEVICE_NAMES = rootDir.list();
 	private static final int NUM_DEVICES = DEVICE_NAMES.length;
-	public static final int NUM_VISIBLE_SCENES = 20;
+	public static final int NUM_VISIBLE_SCENES = 19;
 
 	private RowControlPane[] rowControlPanes = new RowControlPane[NUM_VISIBLE_SCENES];
 	private Cell[][] cells = new Cell[NUM_VISIBLE_SCENES][NUM_DEVICES];
@@ -115,7 +115,8 @@ public class FixedScenesMain extends JPanel implements ActionListener{
 	
 	int countImages(int deviceIndex, int sceneIndex) {
 		String dName = DEVICE_NAMES[deviceIndex];
-		return allFiles2.get(dName).get(sceneIndex).size();
+		List<Set<File>> list = allFiles2.getOrDefault(dName, new ArrayList<>());
+		return sceneIndex<list.size()?list.get(sceneIndex).size():0;
 	}
 	
 	class ControlPane extends JPanel{
@@ -154,10 +155,16 @@ public class FixedScenesMain extends JPanel implements ActionListener{
 			label.setBackground(this.getBackground());
 			label.setEditable(false);
 			label.setMinimumSize(new Dimension(this.getWidth(), label.getHeight()));
-			String timeInfo[] = scenes.get(sceneIndex).sceneLabel.replace("Scene-", "").split("-");
-			String date = timeInfo[0].substring(0,4)+'-'+timeInfo[0].substring(4,6)+'-'+timeInfo[0].substring(6);
-			String time = timeInfo[1].substring(0,2)+':'+timeInfo[1].substring(2,4)+':'+timeInfo[1].substring(4);
-			label.setText(date+'\n'+time);
+			if (sceneIndex < scenes.size()) {
+				Scene s = scenes.get(sceneIndex);
+				if (s.sceneLabel==null || s.sceneLabel.equals("null"))
+					return;
+				//P.p("label: "+s.sceneLabel);
+				String timeInfo[] = s.sceneLabel.replace("Scene-", "").split("-");
+				String date = timeInfo[0].substring(0,4)+'-'+timeInfo[0].substring(4,6)+'-'+timeInfo[0].substring(6);
+				String time = timeInfo[1].substring(0,2)+':'+timeInfo[1].substring(2,4)+':'+timeInfo[1].substring(4);
+				label.setText(date+'\n'+time);
+			}
 		}
 	}
 	
@@ -233,6 +240,27 @@ public class FixedScenesMain extends JPanel implements ActionListener{
 				thisScene.swapImages(aboveScene, cell.deviceName);
 			});
 	    	add(swap);
+	    	
+	    	JMenuItem remove = new JMenuItem("Move scene out of folder");
+	    	remove.addActionListener(e->{
+	    		Scene s = scenes.get(cell.sceneIndex);
+	    		File autoJPG = s.jpgs.get(DEVICE_NAMES[cell.deviceIndex]);
+	    		
+	    		List<File> all20Images = new ArrayList<>();
+	    		String sceneName = autoJPG.getName().split("_")[1];
+	    		for (File f : autoJPG.getParentFile().listFiles()) {
+	    			if (f.getName().endsWith(".jpg") || f.getName().endsWith(".dng")) {
+	    				if (f.getName().split("_")[1].equals(sceneName))
+	    					all20Images.add(f);
+	    			}
+	    		}
+	    		P.p("-- all 20 images -- ");
+	    		all20Images.forEach(f->P.p('\t'+f.getName()));
+	    		
+	    		File dir = new File("H:\\StegoAppDB_20Devices_discarded");
+	    		all20Images.forEach(f->f.renameTo(new File(dir, f.getName())));
+	    	});
+	    	add(remove);
 	    }
 	}
 	
