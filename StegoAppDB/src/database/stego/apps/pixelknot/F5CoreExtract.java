@@ -39,9 +39,9 @@ public class F5CoreExtract {
         }
         catch (Exception e)
         {
-            //e.printStackTrace();
-        	P.p("bad " + stego.getAbsolutePath());
-			P.exec(AndroidCommandCenter.adbPath+" -s FA6BJ0305399 shell rm /sdcard/Download/StegoDB_March2019/stegos/PixelKnot/"+stego.getName(), true);
+            e.printStackTrace();
+        	//P.p("bad " + stego.getAbsolutePath());
+			//P.exec(AndroidCommandCenter.adbPath+" -s FA6BJ0305399 shell rm /sdcard/Download/StegoDB_March2019/stegos/PixelKnot/"+stego.getName(), true);
         }
 
     }

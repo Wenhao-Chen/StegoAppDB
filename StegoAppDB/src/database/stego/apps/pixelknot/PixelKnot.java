@@ -94,21 +94,29 @@ public class PixelKnot {
     }
     
     public static void main(String[] args) {
-    	File dir = new File("C:\\workspace\\temp\\PixelKnot");
-    	for (File stegoF : dir.listFiles())
-    	{
-    		String name = stegoF.getName();
-    		if (!name.endsWith(".jpg") || name.endsWith("rate-00.jpg"))
-    			continue;
-    		File statsF = new File(dir, name.substring(0, name.length()-3)+"csv");
-    		
-    		P.p(stegoF.getAbsolutePath());
-    		P.p("validated: "+validate(stegoF, statsF));
-    		
-    		Map<String, String> info = StegoStats.load(statsF);
-    		String password = info.get("Password");
-    		P.p("has signature: "+hasPixelKnotSignature(stegoF, password));
+    	File root = new File("E:\\new_pixelknot_stegos");
+    	for (File device : root.listFiles()) {
+    		File pkDir = new File(device, "PixelKnot");
+    		for (File stegoF : pkDir.listFiles())
+        	{
+        		String name = stegoF.getName();
+        		if (!name.endsWith(".jpg") || name.endsWith("rate-00.jpg"))
+        			continue;
+        		File statsF = new File(pkDir, name.substring(0, name.length()-3)+"csv");
+        		
+        		boolean validate = validate(stegoF, statsF);
+        		
+        		Map<String, String> info = StegoStats.load(statsF);
+        		String password = info.get("Password");
+        		if (password == null)
+        			P.p("PW null for "+stegoF.getAbsolutePath());
+        		boolean sig = hasPixelKnotSignature(stegoF, password);
+        		
+        		if (!validate || !sig)
+        			P.p(stegoF.getAbsolutePath() + "  "+validate+"  "+sig);
+        	}
     	}
+    	
     }
     
 }
